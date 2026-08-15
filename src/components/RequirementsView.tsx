@@ -1,6 +1,6 @@
 import { ArrowRight, Check, ChevronRight, FileText, Pencil, Quote, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import type { Priority, RequirementItem, ReviewStatus, SpecProject } from '../core/types'
+import { useMemo, useState } from 'react'
+import type { Priority, ReviewStatus, SpecProject } from '../core/types'
 
 interface RequirementsViewProps {
   project: SpecProject
@@ -23,16 +23,26 @@ export function RequirementsView({ project, onUpdate, onOpenTrace }: Requirement
   const [draftTitle, setDraftTitle] = useState(selected?.title ?? '')
   const [draftStatement, setDraftStatement] = useState(selected?.statement ?? '')
 
-  useEffect(() => {
-    setDraftTitle(selected?.title ?? '')
-    setDraftStatement(selected?.statement ?? '')
-    setEditing(false)
-  }, [selected?.id, selected?.statement, selected?.title])
-
   const saveEdit = () => {
     if (!selected) return
     onUpdate(selected.id, { title: draftTitle.trim(), statement: draftStatement.trim(), status: 'modified' })
     setEditing(false)
+  }
+
+  const chooseRequirement = (requirementId: string) => {
+    const requirement = project.requirements.find((item) => item.id === requirementId)
+    setSelectedId(requirementId)
+    setDraftTitle(requirement?.title ?? '')
+    setDraftStatement(requirement?.statement ?? '')
+    setEditing(false)
+  }
+
+  const toggleEditing = () => {
+    if (!editing && selected) {
+      setDraftTitle(selected.title)
+      setDraftStatement(selected.statement)
+    }
+    setEditing(!editing)
   }
 
   const accepted = project.requirements.filter((item) => item.status === 'accepted' || item.status === 'modified').length
@@ -59,7 +69,7 @@ export function RequirementsView({ project, onUpdate, onOpenTrace }: Requirement
             <button
               className={`requirement-row ${selected?.id === requirement.id ? 'selected' : ''}`}
               key={requirement.id}
-              onClick={() => setSelectedId(requirement.id)}
+              onClick={() => chooseRequirement(requirement.id)}
               role="row"
             >
               <code>{requirement.id.replace('req-', 'R-').toUpperCase()}</code>
@@ -80,7 +90,7 @@ export function RequirementsView({ project, onUpdate, onOpenTrace }: Requirement
               <span className="eyebrow">{selected.id}</span>
               {editing ? <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} /> : <h2>{selected.title}</h2>}
             </div>
-            <button className="icon-button" onClick={() => setEditing(!editing)} title={editing ? 'Cancel edit' : 'Edit requirement'}>
+            <button className="icon-button" onClick={toggleEditing} title={editing ? 'Cancel edit' : 'Edit requirement'}>
               {editing ? <X size={17} /> : <Pencil size={17} />}
             </button>
           </div>
@@ -146,4 +156,3 @@ export function RequirementsView({ project, onUpdate, onOpenTrace }: Requirement
     </div>
   )
 }
-

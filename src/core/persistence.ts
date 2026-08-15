@@ -18,7 +18,7 @@ export function loadProject(): SpecProject | null {
     if (!raw) return null
     const parsed: unknown = JSON.parse(raw)
     const result = StoredProjectSchema.safeParse(parsed)
-    return result.success ? result.data as SpecProject : null
+    return result.success ? result.data as unknown as SpecProject : null
   } catch {
     return null
   }
@@ -31,4 +31,3 @@ export function saveProject(project: SpecProject): void {
 export function clearProject(): void {
   localStorage.removeItem(STORAGE_KEY)
 }
-

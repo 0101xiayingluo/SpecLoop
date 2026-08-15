@@ -1,5 +1,5 @@
 import { ArrowRight, Check, Quote, TriangleAlert } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { ClarificationQuestion, RequirementIssue, SpecProject } from '../core/types'
 
 interface ClarifyViewProps {
@@ -34,8 +34,6 @@ function QuestionPanel({
 }) {
   const [selected, setSelected] = useState(question.answer ? 'saved' : '')
   const [custom, setCustom] = useState('')
-  useEffect(() => { setSelected(question.answer ? 'saved' : ''); setCustom('') }, [question.id, question.answer])
-
   return (
     <div className="question-panel">
       <div className="question-meta">
@@ -114,7 +112,7 @@ export function ClarifyView({ project, onAnswer, onSynthesize }: ClarifyViewProp
         </div>
 
         {current ? (
-          <QuestionPanel question={current} index={project.currentQuestionIndex} total={project.questions.length} onAnswer={onAnswer} />
+          <QuestionPanel key={current.id} question={current} index={project.currentQuestionIndex} total={project.questions.length} onAnswer={onAnswer} />
         ) : (
           <div className="clarification-complete">
             <div className="complete-icon"><Check size={24} /></div>
@@ -136,4 +134,3 @@ export function ClarifyView({ project, onAnswer, onSynthesize }: ClarifyViewProp
     </div>
   )
 }
-

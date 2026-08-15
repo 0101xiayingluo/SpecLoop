@@ -1,9 +1,4 @@
-import mammoth from 'mammoth'
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import type { SourceKind } from './types'
-
-GlobalWorkerOptions.workerSrc = workerUrl
 
 export interface ParsedFile {
   title: string
@@ -16,6 +11,11 @@ function extensionOf(filename: string): string {
 }
 
 async function parsePdf(file: File): Promise<string> {
+  const [{ getDocument, GlobalWorkerOptions }, workerModule] = await Promise.all([
+    import('pdfjs-dist'),
+    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+  ])
+  GlobalWorkerOptions.workerSrc = workerModule.default
   const data = new Uint8Array(await file.arrayBuffer())
   const document = await getDocument({ data }).promise
   const pages: string[] = []
@@ -33,6 +33,7 @@ export async function parseFile(file: File): Promise<ParsedFile> {
     return { title: file.name, content: await parsePdf(file), kind: 'pdf' }
   }
   if (extension === 'docx') {
+    const mammoth = (await import('mammoth')).default
     const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
     return { title: file.name, content: result.value, kind: 'docx' }
   }
@@ -46,4 +47,3 @@ export async function parseFile(file: File): Promise<ParsedFile> {
   }
   return { title: file.name, content: raw, kind: 'text' }
 }
-

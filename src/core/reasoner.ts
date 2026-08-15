@@ -24,7 +24,7 @@ const conflictRules = [
   {
     key: 'file-upload',
     title: '材料导入范围冲突',
-    positive: /上传|文件|pdf|docx/iu,
+    positive: /上传|文件|pdf|docx|导入/iu,
     negative: /只支持粘贴|上传.{0,12}(下个|以后|暂不|不做)/iu,
   },
   {
@@ -209,8 +209,8 @@ function buildQuestions(issues: RequirementIssue[], evidence: EvidenceFragment[]
     }
 
     if (issue.kind === 'missing') {
-      const key = Object.keys(questionByMissingKey).find((candidate) => issue.id.includes(candidate))
-      const template = key ? questionByMissingKey[key] : questionByMissingKey['review-authority']
+      const definition = missingDefinitions.find((candidate) => candidate.title === issue.title)
+      const template = definition ? questionByMissingKey[definition.key] : questionByMissingKey['review-authority']
       return {
         ...template,
         id: stableId('question', issue.id),
@@ -236,7 +236,11 @@ function buildQuestions(issues: RequirementIssue[], evidence: EvidenceFragment[]
   })
 
   return candidates
-    .sort((left, right) => right.informationGain - left.informationGain || left.id.localeCompare(right.id))
+    .map((question, declarationOrder) => ({ question, declarationOrder }))
+    .sort((left, right) =>
+      right.question.informationGain - left.question.informationGain || left.declarationOrder - right.declarationOrder,
+    )
+    .map(({ question }) => question)
     .slice(0, MAX_QUESTIONS)
 }
 
@@ -503,17 +507,33 @@ export function synthesizeProject(project: SpecProject): SpecProject {
   return transition(synthesized, 'draft')
 }
 
-function normalizedTokens(value: string): Set<string> {
-  const words = value.toLowerCase().match(/[a-z0-9]{3,}|[\p{Script=Han}]{2,4}/gu) ?? []
-  return new Set(words.filter((word) => !['系统', '用户', '必须', '需求', '首版', '可以', '需要'].includes(word)))
+const impactScopePatterns = [
+  /上传|导入|粘贴|pdf|docx|文件/iu,
+  /导出|github\s*issue|prd|用户故事/iu,
+  /追踪|回溯|来源|原话/iu,
+  /澄清|矛盾|冲突|假设|高信息增益/iu,
+  /验收标准|given|when|then|可测试/iu,
+  /浏览器本地|本地保存|数据删除|保留周期|存储/iu,
+  /接受权|项目负责人|批准|审批/iu,
+  /变更影响|旧决策|失效/iu,
+]
+
+function patternMatches(pattern: RegExp, value: string): boolean {
+  pattern.lastIndex = 0
+  return pattern.test(value)
 }
 
-function overlapScore(left: string, right: string): number {
-  const leftTokens = normalizedTokens(left)
-  const rightTokens = normalizedTokens(right)
-  let overlap = 0
-  for (const token of leftTokens) if (rightTokens.has(token)) overlap += 1
-  return overlap
+function isSameProductScope(feedback: string, target: string): boolean {
+  const scopeMatch = impactScopePatterns.some((pattern) =>
+    patternMatches(pattern, feedback) && patternMatches(pattern, target),
+  )
+  if (scopeMatch) return true
+
+  return conflictRules.some((rule) => {
+    const feedbackMatches = patternMatches(rule.positive, feedback) || patternMatches(rule.negative, feedback)
+    const targetMatches = patternMatches(rule.positive, target) || patternMatches(rule.negative, target)
+    return feedbackMatches && targetMatches
+  })
 }
 
 export function addFeedback(project: SpecProject, title: string, content: string): SpecProject {
@@ -524,12 +544,13 @@ export function addFeedback(project: SpecProject, title: string, content: string
   const mandate = /必须|不能|改为|取消|不再|required|must|cannot|instead/iu.test(feedbackText)
 
   for (const decision of project.decisions) {
-    const score = overlapScore(feedbackText, `${decision.statement} ${decision.rationale}`)
+    const linkedEvidenceText = decision.evidenceIds.map((id) => project.evidence.find((item) => item.id === id)?.quote ?? '').join(' ')
+    const decisionContext = `${decision.statement} ${decision.rationale} ${linkedEvidenceText}`
     const evidenceOverlap = decision.evidenceIds.some((id) => {
       const oldEvidence = project.evidence.find((item) => item.id === id)
-      return oldEvidence ? overlapScore(feedbackText, oldEvidence.quote) > 0 : false
+      return oldEvidence ? isSameProductScope(feedbackText, oldEvidence.quote) : false
     })
-    if (score === 0 && !evidenceOverlap) continue
+    if (!isSameProductScope(feedbackText, decisionContext) && !evidenceOverlap) continue
     impacts.push({
       id: stableId('impact', `${source.id}:${decision.id}`),
       severity: mandate ? 'high' : 'medium',
@@ -540,8 +561,8 @@ export function addFeedback(project: SpecProject, title: string, content: string
   }
 
   for (const requirement of project.requirements) {
-    const score = overlapScore(feedbackText, `${requirement.title} ${requirement.statement}`)
-    if (score === 0) continue
+    const linkedEvidenceText = requirement.evidenceIds.map((id) => project.evidence.find((item) => item.id === id)?.quote ?? '').join(' ')
+    if (!isSameProductScope(feedbackText, `${requirement.title} ${requirement.statement} ${linkedEvidenceText}`)) continue
     impacts.push({
       id: stableId('impact', `${source.id}:${requirement.id}`),
       severity: mandate ? 'high' : 'medium',
@@ -587,4 +608,3 @@ export function addFeedback(project: SpecProject, title: string, content: string
     ],
   }
 }
-

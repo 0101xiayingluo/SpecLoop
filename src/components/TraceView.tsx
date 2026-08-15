@@ -5,6 +5,7 @@ import {
   Controls,
   MarkerType,
   Panel,
+  Position,
   ReactFlow,
   type Edge,
   type Node,
@@ -49,8 +50,8 @@ export function TraceView({ project, onOpenReview }: TraceViewProps) {
         id: item.id,
         position: { x: columnOrder.indexOf(item.type) * 280, y: row * 118 },
         data: { label: truncate(item.label) },
-        sourcePosition: 'right',
-        targetPosition: 'left',
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
         style: {
           width: 220,
           minHeight: 62,
@@ -109,4 +110,3 @@ export function TraceView({ project, onOpenReview }: TraceViewProps) {
     </div>
   )
 }
-
