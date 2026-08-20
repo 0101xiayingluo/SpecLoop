@@ -50,10 +50,10 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
             <h1>Add discussion material</h1>
           </div>
           <div className="heading-actions">
-            <button className="secondary-button" onClick={onLoadDemo}>
+            <button className="secondary-button" onClick={onLoadDemo} disabled={analyzing}>
               <Sparkles size={16} /> Load demo
             </button>
-            <button className="text-button" onClick={onRunFullDemo}>
+            <button className="text-button" onClick={onRunFullDemo} disabled={analyzing}>
               <Play size={15} fill="currentColor" /> Run full demo
             </button>
           </div>
