@@ -16,6 +16,7 @@ SpecLoop 是一个证据驱动的需求澄清与验收 Agent。它把会议记�
 6. 添加新反馈，复核被标为 `at-risk` 的决策和需求。
 7. 导出带证据引用的 PRD、用户故事或 GitHub Issue Markdown。
 8. 在 Evaluation 查看真实模型调用的 Token、估算成本、延迟、状态和 request ID。
+9. 打开 `Guided demo` 和 `Case study`，查看可复现演示与 AI 产品作品集。
 
 ## Architecture
 
@@ -73,6 +74,8 @@ npm run start:model
 
 本地同源运行不需要 `VITE_AGENT_API_URL` 或 CORS 配置。
 
+仓库包含生产 Dockerfile 和 Render Blueprint。完整步骤见 [Deployment guide](docs/DEPLOYMENT.md)。公开模型端点额外启用来源校验、每 IP 限流、并发上限与 Provider 超时，避免仅依赖 CORS 控制付费接口。
+
 ## Evaluation and verification
 
 ```bash
@@ -80,7 +83,7 @@ npm run check
 ```
 
 - 8 条带正负样例的冲突 smoke fixtures，在当前小型合成集上 binary precision / recall 均为 100%。
-- 31 项契约与工作流测试覆盖 5 问上限、模型伪造 evidence ID 拒绝、usage/成本归一化、失败 telemetry、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
+- 33 项契约与工作流测试覆盖 5 问上限、模型伪造 evidence ID 拒绝、usage/成本归一化、失败 telemetry、服务端限流、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
 - 该结果只描述仓库内 smoke set，不代表开放域自然语言准确率；限制记录在 [Evaluation](docs/EVALUATION.md)。
 
 ## Deployment
@@ -105,6 +108,8 @@ npm run check
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evaluation](docs/EVALUATION.md)
 - [Product case study](docs/CASE_STUDY.md)
+- [Portfolio](docs/PORTFOLIO.md)
+- [Deployment guide](docs/DEPLOYMENT.md)
 - [Three-minute demo](docs/DEMO.md)
 - [Open-source research](docs/OPEN_SOURCE_RESEARCH.md)
 - [Resume notes](docs/RESUME.md)

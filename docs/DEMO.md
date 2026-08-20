@@ -1,4 +1,26 @@
-# Three-minute demo
+# 90-second portfolio demo
+
+## 0:00-0:15 · Business problem
+
+打开 `Case study`，用一句话说明：SpecLoop 不是自动写 PRD，而是把冲突讨论变成可追踪、可验收、可重审的产品决策。
+
+## 0:15-0:30 · Reproducible scenario
+
+进入 `Guided demo` 并点击 `Run scenario`。系统生成课程项目范围争议的完整项目，所有页面立即可用。
+
+## 0:30-0:50 · Evidence and human gate
+
+打开 Requirements，选择一条需求，展示来源原文、行号、Given/When/Then 和人工修改入口。
+
+## 0:50-1:05 · Trace and change
+
+打开 Trace 点击验收节点回溯原文；进入 Review 添加“必须现场上传 PDF”，展示相关节点变为 `at-risk`。
+
+## 1:05-1:30 · Agent control plane
+
+打开 Evaluation，展示证据索引、Reasoner proposal、Grounding guard、人类门禁、变更监控，以及真实模型调用产生的 Token/成本/延迟。明确没有真实调用时不展示虚构数字。
+
+# Three-minute deep dive
 
 ## 0:00-0:30 · Material intake
 

@@ -53,6 +53,15 @@ browser response -> client latency -> AgentRun -> local project + Evaluation
 
 远程部署时，Node 服务使用 `HOST=0.0.0.0`，`VITE_AGENT_API_URL` 指向该服务，`ALLOWED_ORIGIN` 只允许指定前端源；本地同源运行不需要 CORS。
 
+公共演示部署还在模型调用前执行四项服务端保护：Origin 校验、固定窗口每 IP 限流、全局并发上限和 Provider 超时。它们降低作品集演示的滥用和成本风险，但不替代生产系统的用户身份、持久化配额与预算告警。
+
+## Product surfaces
+
+- `Case study`：把问题、PM 决策、Agent 机制、已验证指标和下一轮验证放在同一作品集页面。
+- `Guided demo`：一键生成可复现课程项目场景，并连接 Requirements、Trace、Review 和 Evaluation。
+- `Agent control plane`：基于当前项目状态显示 Evidence index、Reasoner proposal、Grounding guard、Human gate 和 Change monitor。
+- `LLM Agent observability`：只展示真实 Provider Agent Run；无调用时保持空状态，不注入演示 Token 或延迟。
+
 ## Persistence and privacy
 
 - 本地项目存储键：`specloop.project.v1`。

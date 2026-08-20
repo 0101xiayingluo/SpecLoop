@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, CircleAlert, Coins, Cpu, GitBranch, ListChecks, MessageSquareMore, Target, Timer } from 'lucide-react'
+import { Activity, ArrowRight, CheckCircle2, CircleAlert, Coins, Cpu, FileSearch, GitBranch, ListChecks, MessageSquareMore, Radar, ShieldCheck, Target, Timer, UserCheck } from 'lucide-react'
 import { traceCoverage } from '../core/trace'
 import cases from '../../evals/cases.json'
 import type { SpecProject } from '../core/types'
@@ -31,6 +31,46 @@ export function EvaluationView({ project }: EvaluationViewProps) {
   const averageLatency = successfulRuns.length === 0
     ? 0
     : successfulRuns.reduce((sum, run) => sum + run.clientLatencyMs, 0) / successfulRuns.length
+  const knownEvidenceIds = new Set(project.evidence.map((item) => item.id))
+  const groundingPassed = project.evidence.length > 0
+    && project.issues.every((item) => item.evidenceIds.every((id) => knownEvidenceIds.has(id)))
+    && project.requirements.every((item) => item.evidenceIds.length > 0 && item.evidenceIds.every((id) => knownEvidenceIds.has(id)))
+  const humanGatePassed = project.questions.length > 0 && answered === project.questions.length
+  const feedbackCount = project.sources.filter((item) => item.kind === 'feedback').length
+  const latestRun = project.agentRuns.at(-1)
+
+  const controlStages = [
+    {
+      icon: FileSearch,
+      label: 'Evidence index',
+      status: project.evidence.length > 0 ? 'passed' : 'waiting',
+      detail: project.evidence.length > 0 ? `${project.evidence.length} grounded fragments` : 'Waiting for source material',
+    },
+    {
+      icon: Cpu,
+      label: 'Reasoner proposal',
+      status: project.issues.length > 0 ? 'passed' : 'waiting',
+      detail: latestRun ? `${latestRun.model} · ${latestRun.status}` : project.issues.length > 0 ? 'Deterministic baseline' : 'No proposal yet',
+    },
+    {
+      icon: ShieldCheck,
+      label: 'Grounding guard',
+      status: groundingPassed ? 'passed' : project.evidence.length > 0 ? 'review' : 'waiting',
+      detail: groundingPassed ? 'Schema and evidence links valid' : 'Evidence contract not complete',
+    },
+    {
+      icon: UserCheck,
+      label: 'Human gate',
+      status: humanGatePassed ? 'passed' : project.questions.length > 0 ? 'review' : 'waiting',
+      detail: project.questions.length > 0 ? `${answered}/${project.questions.length} decisions confirmed` : 'No decisions queued',
+    },
+    {
+      icon: Radar,
+      label: 'Change monitor',
+      status: feedbackCount > 0 ? project.impacts.some((item) => item.status === 'open') ? 'review' : 'passed' : 'armed',
+      detail: feedbackCount > 0 ? `${project.impacts.filter((item) => item.status === 'open').length} open impacts` : 'Armed for new feedback',
+    },
+  ] as const
 
   const checks = [
     { label: 'Every requirement has source evidence', pass: project.requirements.every((item) => item.evidenceIds.length > 0) },
@@ -53,6 +93,27 @@ export function EvaluationView({ project }: EvaluationViewProps) {
         <div><Target size={18} /><span>Acceptance shape</span><strong>{criteriaTotal === 0 ? 0 : Math.round(criteriaComplete / criteriaTotal * 100)}%</strong><small>{criteriaComplete}/{criteriaTotal} complete</small></div>
         <div><ListChecks size={18} /><span>Human review</span><strong>{project.requirements.length === 0 ? 0 : Math.round(accepted / project.requirements.length * 100)}%</strong><small>{accepted}/{project.requirements.length} reviewed</small></div>
       </div>
+
+      <section className="agent-control-panel">
+        <div className="subsection-title">
+          <div><Activity size={17} /><h2>Agent control plane</h2></div>
+          <span>Proposal → guardrails → human authority</span>
+        </div>
+        <div className="agent-control-track">
+          {controlStages.map((stage, index) => {
+            const Icon = stage.icon
+            return (
+              <div className={`agent-control-stage ${stage.status}`} key={stage.label}>
+                <div className="agent-control-icon"><Icon size={17} /></div>
+                <span>{stage.label}</span>
+                <strong>{stage.status}</strong>
+                <small>{stage.detail}</small>
+                {index < controlStages.length - 1 ? <ArrowRight size={15} className="agent-control-arrow" /> : null}
+              </div>
+            )
+          })}
+        </div>
+      </section>
 
       <section className="agent-observability">
         <div className="subsection-title">

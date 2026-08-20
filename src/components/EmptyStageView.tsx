@@ -1,8 +1,6 @@
 import { ArrowLeft, ClipboardCheck, FileStack, FlaskConical, GitBranch, Play } from 'lucide-react'
-import type { AppView } from './Shell'
-
 interface EmptyStageViewProps {
-  view: Exclude<AppView, 'workspace'>
+  view: 'requirements' | 'trace' | 'review' | 'evaluation'
   onBack: () => void
   onRunFullDemo: () => void
 }

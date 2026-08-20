@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { ClarifyView } from './components/ClarifyView'
+import { DemoView } from './components/DemoView'
 import { EmptyStageView } from './components/EmptyStageView'
 import { EvaluationView } from './components/EvaluationView'
 import { IntakeView } from './components/IntakeView'
+import { PortfolioView } from './components/PortfolioView'
 import { PreferencesPanel } from './components/PreferencesPanel'
 import { RequirementsView } from './components/RequirementsView'
 import { ReviewView } from './components/ReviewView'
@@ -143,7 +145,7 @@ export default function App() {
   }
 
   const changeView = (view: AppView) => {
-    if (view !== 'workspace' && project.requirements.length === 0) {
+    if (!['workspace', 'demo', 'portfolio'].includes(view) && project.requirements.length === 0) {
       setActiveView(view)
       return
     }
@@ -182,7 +184,26 @@ export default function App() {
   }
 
   let content
-  if (activeView !== 'workspace' && project.requirements.length === 0) {
+  if (activeView === 'portfolio') {
+    content = (
+      <PortfolioView
+        onRunDemo={runFullDemo}
+        onOpenDemo={() => setActiveView('demo')}
+        onOpenEvaluation={() => setActiveView('evaluation')}
+      />
+    )
+  } else if (activeView === 'demo') {
+    content = (
+      <DemoView
+        project={project}
+        onRunDemo={runFullDemo}
+        onOpenRequirements={() => setActiveView('requirements')}
+        onOpenTrace={openTrace}
+        onOpenReview={openReview}
+        onOpenEvaluation={() => setActiveView('evaluation')}
+      />
+    )
+  } else if (activeView !== 'workspace' && project.requirements.length === 0) {
     content = (
       <EmptyStageView
         view={activeView}

@@ -11,7 +11,8 @@
 - 建立需求与 Given/When/Then 验收标准的 100% 来源覆盖校验，并支持新反馈对旧决策的 `at-risk` 影响分析。
 - 设计确定性 Demo Reasoner 与可选 Responses API 双模式：使用 JSON Schema、Zod 和 evidence ID 白名单约束模型输出，Provider 故障时自动回退并保留审计事件。
 - 为真实模型调用建立 Agent Run 观测：记录输入/缓存/输出/推理 Token、成本估算、服务端与端到端延迟、状态和 request ID。
-- 构建 8 条正负冲突 smoke fixtures、31 项自动化测试、GitHub Actions CI/Pages 部署，以及 PRD/用户故事/GitHub Issue 导出。
+- 为公共模型端点加入来源校验、每 IP 限流、并发上限和超时控制，并提供 Docker/Render 与 GitHub Pages 分离部署。
+- 构建 8 条正负冲突 smoke fixtures、33 项自动化测试、GitHub Actions CI/Pages 部署，以及 PRD/用户故事/GitHub Issue 导出。
 
 ## Metrics that can be defended
 
