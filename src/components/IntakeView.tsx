@@ -71,7 +71,11 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
               type="file"
               accept=".txt,.md,.markdown,.json,.pdf,.docx"
               hidden
-              onChange={(event) => void handleFile(event.target.files?.[0])}
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.currentTarget.value = ''
+                void handleFile(file)
+              }}
             />
             <button className="text-button" onClick={() => fileInput.current?.click()} disabled={busy}>
               {busy ? <LoaderCircle className="spin" size={16} /> : <Upload size={16} />}
