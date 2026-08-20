@@ -345,6 +345,33 @@ h2 {
   overflow: auto;
 }
 
+.runtime-fallback {
+  display: grid;
+  min-height: 100vh;
+  padding: 28px;
+  place-content: center;
+  justify-items: start;
+  color: var(--ink);
+  background: #f7f8f6;
+}
+
+.runtime-fallback > svg {
+  margin-bottom: 18px;
+  color: var(--danger);
+}
+
+.runtime-fallback h1 {
+  max-width: 560px;
+}
+
+.runtime-fallback p {
+  max-width: 560px;
+  margin: 10px 0 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .global-error {
   position: fixed;
   z-index: 50;
