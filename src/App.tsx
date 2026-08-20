@@ -28,6 +28,7 @@ export default function App() {
   const [preferencesOpen, setPreferencesOpen] = useState(false)
   const [error, setError] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
+  const [providerStatus, setProviderStatus] = useState<'checking' | 'available' | 'unavailable'>('checking')
 
   useEffect(() => {
     let errorTimer: number | undefined
@@ -39,6 +40,19 @@ export default function App() {
     }
     return () => window.clearTimeout(errorTimer)
   }, [project])
+
+  useEffect(() => {
+    let active = true
+    void fetch('/api/health')
+      .then(async (response) => response.ok ? response.json() as Promise<{ available?: boolean }> : { available: false })
+      .then((result) => {
+        if (active) setProviderStatus(result.available ? 'available' : 'unavailable')
+      })
+      .catch(() => {
+        if (active) setProviderStatus('unavailable')
+      })
+    return () => { active = false }
+  }, [])
 
   const withErrorBoundary = (action: () => void) => {
     try {
@@ -193,12 +207,14 @@ export default function App() {
       onViewChange={changeView}
       onNewProject={reset}
       onOpenPreferences={() => setPreferencesOpen(true)}
+      providerStatus={providerStatus}
     >
       {error ? <div className="global-error" role="alert">{error}<button onClick={() => setError('')}>Dismiss</button></div> : null}
       {content}
       <PreferencesPanel
         open={preferencesOpen}
         preferences={project.preferences}
+        providerStatus={providerStatus}
         onClose={() => setPreferencesOpen(false)}
         onChange={updateWorkingPreferences}
       />

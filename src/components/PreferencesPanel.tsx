@@ -4,11 +4,12 @@ import type { WorkingPreferences } from '../core/types'
 interface PreferencesPanelProps {
   open: boolean
   preferences: WorkingPreferences
+  providerStatus: 'checking' | 'available' | 'unavailable'
   onClose: () => void
   onChange: (change: Partial<Omit<WorkingPreferences, 'updatedAt'>>) => void
 }
 
-export function PreferencesPanel({ open, preferences, onClose, onChange }: PreferencesPanelProps) {
+export function PreferencesPanel({ open, preferences, providerStatus, onClose, onChange }: PreferencesPanelProps) {
   if (!open) return null
   return (
     <div className="drawer-backdrop" onMouseDown={onClose}>
@@ -25,7 +26,13 @@ export function PreferencesPanel({ open, preferences, onClose, onChange }: Prefe
           <span>Reasoner</span>
           <div className="segmented-control reasoner-control">
             {(['demo', 'model'] as const).map((value) => (
-              <button key={value} className={(preferences.reasonerMode ?? 'demo') === value ? 'active' : ''} onClick={() => onChange({ reasonerMode: value })}>
+              <button
+                key={value}
+                className={(preferences.reasonerMode ?? 'demo') === value ? 'active' : ''}
+                onClick={() => onChange({ reasonerMode: value })}
+                disabled={value === 'model' && providerStatus !== 'available'}
+                title={value === 'model' && providerStatus !== 'available' ? 'Start the model server with OPENAI_API_KEY to enable this mode' : undefined}
+              >
                 {value === 'demo' ? 'Demo' : 'Model'}
               </button>
             ))}
@@ -57,10 +64,10 @@ export function PreferencesPanel({ open, preferences, onClose, onChange }: Prefe
         </label>
 
         <div className="memory-note">
-          <strong>{preferences.reasonerMode === 'model' ? 'Server-side model mode' : 'Deterministic demo mode'}</strong>
-          <p>{preferences.reasonerMode === 'model'
-            ? 'Uses the local /api/reason adapter. API keys never enter browser storage; unavailable providers fall back to the demo reasoner.'
-            : 'Runs offline with reproducible outputs. These preferences are saved in this browser.'}</p>
+          <strong>{providerStatus === 'available' ? 'Model provider ready' : providerStatus === 'checking' ? 'Checking model provider' : 'Deterministic demo ready'}</strong>
+          <p>{providerStatus === 'available'
+            ? 'Model mode is available through the local server. API keys never enter browser storage.'
+            : 'All product features work offline in Demo mode. Start the model server with OPENAI_API_KEY to enable Model mode.'}</p>
         </div>
       </aside>
     </div>

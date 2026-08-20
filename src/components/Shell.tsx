@@ -18,6 +18,7 @@ interface ShellProps {
   onViewChange: (view: AppView) => void
   onNewProject: () => void
   onOpenPreferences: () => void
+  providerStatus: 'checking' | 'available' | 'unavailable'
   children: ReactNode
 }
 
@@ -37,7 +38,7 @@ const stages = [
   { id: 'review', label: '评审' },
 ] as const
 
-export function Shell({ project, activeView, onViewChange, onNewProject, onOpenPreferences, children }: ShellProps) {
+export function Shell({ project, activeView, onViewChange, onNewProject, onOpenPreferences, providerStatus, children }: ShellProps) {
   const activeStageIndex = stages.findIndex((stage) => stage.id === project.stage)
   const hasDraft = project.requirements.length > 0
 
@@ -104,7 +105,9 @@ export function Shell({ project, activeView, onViewChange, onNewProject, onOpenP
             ))}
           </ol>
           <div className={`mode-badge ${project.preferences.reasonerMode === 'model' ? 'model' : ''}`}>
-            <span /> {project.preferences.reasonerMode === 'model' ? 'Model Reasoner' : 'Demo Reasoner'}
+            <span /> {project.preferences.reasonerMode === 'model'
+              ? providerStatus === 'available' ? 'Model Reasoner' : 'Model unavailable'
+              : 'Demo Reasoner'}
           </div>
         </header>
         <main className="workspace-main">{children}</main>
