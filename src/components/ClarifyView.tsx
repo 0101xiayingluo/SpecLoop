@@ -5,6 +5,7 @@ import type { ClarificationQuestion, RequirementIssue, SpecProject } from '../co
 interface ClarifyViewProps {
   project: SpecProject
   onAnswer: (questionId: string, optionId: string, customAnswer?: string) => void
+  onAnswerRecommendations: () => void
   onSynthesize: () => void
 }
 
@@ -79,7 +80,7 @@ function QuestionPanel({
   )
 }
 
-export function ClarifyView({ project, onAnswer, onSynthesize }: ClarifyViewProps) {
+export function ClarifyView({ project, onAnswer, onAnswerRecommendations, onSynthesize }: ClarifyViewProps) {
   const current = project.questions[project.currentQuestionIndex]
   const activeIssueIds = new Set(current?.issueIds ?? [])
   const resolvedCount = project.questions.filter((item) => item.answer).length
@@ -100,6 +101,14 @@ export function ClarifyView({ project, onAnswer, onSynthesize }: ClarifyViewProp
         <ul className="issue-list">
           {project.issues.map((issue) => <IssueRow key={issue.id} issue={issue} active={activeIssueIds.has(issue.id)} />)}
         </ul>
+        {project.questions.length > 0 && !complete ? (
+          <div className="clarify-quick-action">
+            <button className="secondary-button" onClick={onAnswerRecommendations}>
+              <Check size={15} /> Use all recommendations
+            </button>
+            <span>Apply the suggested answer to each queued question.</span>
+          </div>
+        ) : null}
       </aside>
 
       <section className="clarification-work">

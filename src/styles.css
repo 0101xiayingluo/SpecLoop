@@ -745,6 +745,26 @@ h2 {
   font-size: 8px;
 }
 
+.clarify-quick-action {
+  display: grid;
+  gap: 7px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.clarify-quick-action .secondary-button {
+  width: 100%;
+  min-height: 34px;
+  font-size: 10px;
+}
+
+.clarify-quick-action > span {
+  color: #89918a;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
 .severity-dot {
   width: 7px;
   height: 7px;

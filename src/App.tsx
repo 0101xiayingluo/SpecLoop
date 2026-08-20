@@ -78,6 +78,12 @@ export default function App() {
     withErrorBoundary(() => setProject((current) => answerQuestion(current, questionId, optionId, customAnswer)))
   }
 
+  const answerRecommendations = () => {
+    withErrorBoundary(() => setProject((current) => current.questions.reduce((next, question) => (
+      answerQuestion(next, question.id, question.recommendationId ?? question.options[0].id)
+    ), current)))
+  }
+
   const synthesize = () => {
     withErrorBoundary(() => {
       setProject((current) => synthesizeProject(current))
@@ -157,7 +163,7 @@ export default function App() {
   } else if (project.stage === 'intake') {
     content = <IntakeView sources={project.sources} analyzing={analyzing} reasonerMode={project.preferences.reasonerMode ?? 'demo'} onAnalyze={analyze} onLoadDemo={loadDemo} />
   } else if (project.stage === 'clarify') {
-    content = <ClarifyView project={project} onAnswer={answer} onSynthesize={synthesize} />
+    content = <ClarifyView project={project} onAnswer={answer} onAnswerRecommendations={answerRecommendations} onSynthesize={synthesize} />
   } else {
     content = <RequirementsView project={project} onUpdate={updateRequirementItem} onUpdateCriterion={updateCriterion} onOpenTrace={openTrace} />
   }
