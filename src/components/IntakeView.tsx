@@ -9,9 +9,10 @@ interface IntakeViewProps {
   reasonerMode: 'demo' | 'model'
   onAnalyze: (title: string, content: string, kind: SourceKind) => void | Promise<void>
   onLoadDemo: () => void
+  onRunFullDemo: () => void
 }
 
-export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoadDemo }: IntakeViewProps) {
+export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoadDemo, onRunFullDemo }: IntakeViewProps) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -48,9 +49,14 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
             <span className="eyebrow">Source intake</span>
             <h1>Add discussion material</h1>
           </div>
-          <button className="secondary-button" onClick={onLoadDemo}>
-            <Sparkles size={16} /> Load demo
-          </button>
+          <div className="heading-actions">
+            <button className="secondary-button" onClick={onLoadDemo}>
+              <Sparkles size={16} /> Load demo
+            </button>
+            <button className="text-button" onClick={onRunFullDemo}>
+              <Play size={15} fill="currentColor" /> Run full demo
+            </button>
+          </div>
         </div>
 
         <label className="title-input">

@@ -74,6 +74,17 @@ export default function App() {
     })
   }
 
+  const runFullDemo = () => {
+    withErrorBoundary(() => {
+      let demo = analyzeMaterial(createProject('Course project requirements'), 'Course project discussion', DEMO_SOURCE, 'markdown')
+      for (const question of demo.questions) {
+        demo = answerQuestion(demo, question.id, question.recommendationId ?? question.options[0].id)
+      }
+      setProject(synthesizeProject(demo))
+      setActiveView('requirements')
+    })
+  }
+
   const answer = (questionId: string, optionId: string, customAnswer?: string) => {
     withErrorBoundary(() => setProject((current) => answerQuestion(current, questionId, optionId, customAnswer)))
   }
@@ -161,7 +172,7 @@ export default function App() {
   } else if (activeView === 'evaluation') {
     content = <EvaluationView project={project} />
   } else if (project.stage === 'intake') {
-    content = <IntakeView sources={project.sources} analyzing={analyzing} reasonerMode={project.preferences.reasonerMode ?? 'demo'} onAnalyze={analyze} onLoadDemo={loadDemo} />
+    content = <IntakeView sources={project.sources} analyzing={analyzing} reasonerMode={project.preferences.reasonerMode ?? 'demo'} onAnalyze={analyze} onLoadDemo={loadDemo} onRunFullDemo={runFullDemo} />
   } else if (project.stage === 'clarify') {
     content = <ClarifyView project={project} onAnswer={answer} onAnswerRecommendations={answerRecommendations} onSynthesize={synthesize} />
   } else {
