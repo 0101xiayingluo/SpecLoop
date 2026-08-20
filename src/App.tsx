@@ -9,7 +9,7 @@ import { Shell, type AppView } from './components/Shell'
 import { TraceView } from './components/TraceView'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './core/reasoner'
 import { clearProject, loadProject, saveProject } from './core/persistence'
-import { markAllRequirements, updateAcceptanceCriterion, updatePreferences, updateRequirement } from './core/projectActions'
+import { markAllRequirements, resolveImpact, updateAcceptanceCriterion, updatePreferences, updateRequirement } from './core/projectActions'
 import { DEMO_SOURCE } from './core/sample'
 import { createProject, transition } from './core/stateMachine'
 import type { Priority, ReviewStatus, SourceKind, SpecProject, WorkingPreferences } from './core/types'
@@ -130,6 +130,7 @@ export default function App() {
         project={project}
         onAddFeedback={(title, value) => setProject((current) => addFeedback(current, title, value))}
         onAcceptAll={() => setProject((current) => markAllRequirements(current, 'accepted'))}
+        onResolveImpact={(impactId) => setProject((current) => resolveImpact(current, impactId))}
       />
     )
   } else if (activeView === 'evaluation') {

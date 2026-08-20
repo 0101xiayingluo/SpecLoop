@@ -1276,6 +1276,71 @@ button.requirement-row.selected {
 
 .trace-legend i.risk-edge { background: #c24137; }
 
+.trace-inspector {
+  width: min(320px, calc(100% - 24px));
+  max-height: min(430px, calc(100% - 24px));
+  padding: 14px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(23, 33, 27, 0.12);
+}
+
+.trace-inspector-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #788178;
+  font-size: 8px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.trace-inspector h2 {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.trace-inspector > p {
+  margin: 3px 0;
+  color: #526057;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.trace-inspector-evidence {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.trace-inspector-evidence > span,
+.trace-inspector-evidence cite {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #7d877f;
+  font-size: 8px;
+}
+
+.trace-inspector-evidence blockquote {
+  margin: 7px 0 0;
+  padding: 8px;
+  color: #4c574f;
+  background: #f7f8f6;
+  border-left: 2px solid #93a76b;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.trace-inspector-evidence cite {
+  margin-top: 5px;
+  font-style: normal;
+}
+
 .react-flow__controls {
   overflow: hidden;
   border: 1px solid var(--line) !important;
@@ -1374,7 +1439,7 @@ button.requirement-row.selected {
 }
 
 .impact-row {
-  grid-template-columns: 54px minmax(0, 1fr) 120px;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
 }
 
 .impact-row p,
@@ -1386,14 +1451,31 @@ button.requirement-row.selected {
 }
 
 .impact-row code {
+  display: block;
+  margin-top: 4px;
   overflow: hidden;
   color: #7b847d;
   font-size: 8px;
   text-overflow: ellipsis;
 }
 
+.impact-row .secondary-button {
+  min-height: 30px;
+  padding-inline: 9px;
+  font-size: 9px;
+}
+
+.impact-row.resolved {
+  opacity: 0.65;
+}
+
+.impact-row.resolved > svg {
+  color: #4f7a2e;
+}
+
 .severity-badge.medium { color: #89510c; background: #f8e8ca; }
 .severity-badge.low { color: #3c627b; background: #dfeef5; }
+.severity-badge.resolved { color: #316118; background: #e0f0d3; }
 
 .impact-empty {
   display: flex;

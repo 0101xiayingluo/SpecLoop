@@ -117,9 +117,11 @@ export interface WorkingPreferences {
 export interface ImpactFinding {
   id: string
   severity: Severity
+  status: 'open' | 'resolved'
   feedbackEvidenceIds: string[]
   affectedNodeIds: string[]
   explanation: string
+  resolvedAt?: string
 }
 
 export interface AuditEvent {
@@ -155,4 +157,3 @@ export interface TraceNode {
   label: string
   status?: ReviewStatus
 }
-

@@ -18,7 +18,7 @@ export function EvaluationView({ project }: EvaluationViewProps) {
     { label: 'Every acceptance criterion has source evidence', pass: project.requirements.every((item) => item.criteria.every((criterion) => criterion.evidenceIds.length > 0)) },
     { label: 'Clarification queue is capped at five', pass: project.questions.length <= 5 },
     { label: 'All selected clarification questions are resolved', pass: answered === project.questions.length },
-    { label: 'No accepted node has unresolved change impact', pass: !project.impacts.some((impact) => impact.severity === 'high') },
+    { label: 'No accepted node has unresolved change impact', pass: !project.impacts.some((impact) => impact.severity === 'high' && impact.status !== 'resolved') },
   ]
 
   return (
@@ -62,4 +62,3 @@ export function EvaluationView({ project }: EvaluationViewProps) {
     </div>
   )
 }
-

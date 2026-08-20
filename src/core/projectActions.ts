@@ -85,6 +85,40 @@ export function updatePreferences(project: SpecProject, preferences: Partial<Omi
   }
 }
 
+export function resolveImpact(project: SpecProject, impactId: string): SpecProject {
+  const impact = project.impacts.find((item) => item.id === impactId)
+  if (!impact) throw new Error(`Unknown impact finding: ${impactId}`)
+  if (impact.status === 'resolved') return project
+
+  const at = nowIso()
+  const impacts = project.impacts.map((item) => item.id === impactId ? { ...item, status: 'resolved' as const, resolvedAt: at } : item)
+  const stillAtRisk = new Set(impacts
+    .filter((item) => item.status !== 'resolved')
+    .flatMap((item) => item.affectedNodeIds))
+  const resolvedNodeIds = new Set(impact.affectedNodeIds)
+
+  return {
+    ...project,
+    impacts,
+    decisions: project.decisions.map((item) =>
+      resolvedNodeIds.has(item.id) && !stillAtRisk.has(item.id) ? { ...item, status: 'accepted' as const } : item,
+    ),
+    requirements: project.requirements.map((item) =>
+      resolvedNodeIds.has(item.id) && !stillAtRisk.has(item.id) ? { ...item, status: 'accepted' as const } : item,
+    ),
+    updatedAt: at,
+    audit: [
+      ...project.audit,
+      {
+        id: stableId('audit', `impact:${impactId}:resolved:${at}`),
+        at,
+        action: 'impact.resolved',
+        detail: `${impactId}: current decision or requirement confirmed`,
+      },
+    ],
+  }
+}
+
 export function markAllRequirements(project: SpecProject, status: ReviewStatus): SpecProject {
   return project.requirements.reduce(
     (current, requirement) => updateRequirement(current, requirement.id, { status }),

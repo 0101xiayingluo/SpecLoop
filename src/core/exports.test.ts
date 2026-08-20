@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { exportGithubIssues, exportPrd, exportUserStories } from './exports'
-import { analyzeMaterial, answerQuestion, synthesizeProject } from './reasoner'
-import { DEMO_SOURCE } from './sample'
+import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './reasoner'
+import { DEMO_FEEDBACK, DEMO_SOURCE } from './sample'
 import { createProject } from './stateMachine'
 
 function buildProject() {
@@ -22,5 +22,14 @@ describe('Markdown exports', () => {
       expect(output).toContain('Evidence')
       expect(output).toContain('Evidence notes')
     }
+  })
+
+  it('includes feedback impact and affected nodes in the PRD', () => {
+    const project = addFeedback(buildProject(), 'Changed upload constraint', DEMO_FEEDBACK)
+    const output = exportPrd(project)
+
+    expect(output).toContain('## Change impact')
+    expect(output).toContain('老师新增要求')
+    expect(output).toContain(project.impacts[0].affectedNodeIds[0])
   })
 })

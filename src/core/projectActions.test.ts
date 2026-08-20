@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { updateAcceptanceCriterion } from './projectActions'
-import { analyzeMaterial, answerQuestion, synthesizeProject } from './reasoner'
-import { DEMO_SOURCE } from './sample'
+import { resolveImpact, updateAcceptanceCriterion } from './projectActions'
+import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './reasoner'
+import { DEMO_FEEDBACK, DEMO_SOURCE } from './sample'
 import { createProject } from './stateMachine'
 
 function synthesizedDemo() {
@@ -37,5 +37,17 @@ describe('project actions', () => {
 
     expect(() => updateAcceptanceCriterion(project, requirement.id, criterion.id, { then: '  ' }))
       .toThrow('Given, When, and Then are all required')
+  })
+
+  it('closes a reviewed impact and clears its affected node risk', () => {
+    const impacted = addFeedback(synthesizedDemo(), 'Changed upload constraint', DEMO_FEEDBACK)
+    const finding = impacted.impacts[0]
+    const resolved = resolveImpact(impacted, finding.id)
+    const affectedIds = new Set(finding.affectedNodeIds)
+
+    expect(resolved.impacts.find((item) => item.id === finding.id)?.status).toBe('resolved')
+    expect(resolved.decisions.filter((item) => affectedIds.has(item.id)).every((item) => item.status !== 'at-risk')).toBe(true)
+    expect(resolved.requirements.filter((item) => affectedIds.has(item.id)).every((item) => item.status !== 'at-risk')).toBe(true)
+    expect(resolved.audit.at(-1)?.action).toBe('impact.resolved')
   })
 })

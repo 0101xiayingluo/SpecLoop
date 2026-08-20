@@ -1,5 +1,5 @@
-import { ArrowRight, CheckCircle2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { ArrowRight, CheckCircle2, FileText, Quote } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import {
   Background,
   Controls,
@@ -10,7 +10,7 @@ import {
   type Edge,
   type Node,
 } from '@xyflow/react'
-import { buildTraceNodes, traceCoverage } from '../core/trace'
+import { buildTraceNodes, traceCoverage, traceNodeDetails } from '../core/trace'
 import type { SpecProject, TraceNodeType } from '../core/types'
 
 interface TraceViewProps {
@@ -40,6 +40,8 @@ function truncate(value: string, max = 72): string {
 
 export function TraceView({ project, onOpenReview }: TraceViewProps) {
   const coverage = traceCoverage(project)
+  const [selectedNodeId, setSelectedNodeId] = useState(project.requirements[0]?.id ?? project.evidence[0]?.id ?? '')
+  const details = useMemo(() => traceNodeDetails(project, selectedNodeId), [project, selectedNodeId])
   const nodes = useMemo<Node[]>(() => {
     const traceNodes = buildTraceNodes(project)
     const positions = new Map<TraceNodeType, number>()
@@ -52,6 +54,7 @@ export function TraceView({ project, onOpenReview }: TraceViewProps) {
         data: { label: truncate(item.label) },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
+        selected: item.id === selectedNodeId,
         style: {
           width: 220,
           minHeight: 62,
@@ -63,11 +66,12 @@ export function TraceView({ project, onOpenReview }: TraceViewProps) {
           fontSize: 12,
           lineHeight: 1.45,
           textAlign: 'left',
-          boxShadow: '0 1px 2px rgba(23,33,27,.06)',
+          boxShadow: item.id === selectedNodeId ? '0 0 0 3px rgba(99,126,44,.2)' : '0 1px 2px rgba(23,33,27,.06)',
+          cursor: 'pointer',
         },
       }
     })
-  }, [project])
+  }, [project, selectedNodeId])
 
   const edges = useMemo<Edge[]>(() => project.edges.map((edge) => ({
     id: edge.id,
@@ -98,9 +102,42 @@ export function TraceView({ project, onOpenReview }: TraceViewProps) {
         {columnOrder.map((type) => <span key={type}>{columnLabel[type]}</span>)}
       </div>
       <div className="trace-canvas">
-        <ReactFlow nodes={nodes} edges={edges} fitView fitViewOptions={{ padding: 0.16 }} minZoom={0.25} maxZoom={1.5}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          fitView
+          fitViewOptions={{ padding: 0.16 }}
+          minZoom={0.25}
+          maxZoom={1.5}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          onNodeClick={(_event, node) => setSelectedNodeId(node.id)}
+        >
           <Background color="#dfe3dc" gap={24} size={1} />
           <Controls showInteractive={false} />
+          {details ? (
+            <Panel position="top-right" className="trace-inspector">
+              <div className="trace-inspector-heading">
+                <span>{columnLabel[details.type]}</span>
+                {details.status ? <strong className={`status-label ${details.status}`}>{details.status}</strong> : null}
+              </div>
+              <h2>{details.label}</h2>
+              {details.description.split('\n').map((line) => <p key={line}>{line}</p>)}
+              <div className="trace-inspector-evidence">
+                <span><Quote size={13} /> Source evidence · {details.evidenceIds.length}</span>
+                {details.evidenceIds.slice(0, 3).map((id) => {
+                  const evidence = project.evidence.find((item) => item.id === id)
+                  const source = evidence ? project.sources.find((item) => item.id === evidence.sourceId) : undefined
+                  return evidence ? (
+                    <blockquote key={id}>
+                      {evidence.quote}
+                      <cite><FileText size={11} /> {source?.title} · line {evidence.lineStart}</cite>
+                    </blockquote>
+                  ) : null
+                })}
+              </div>
+            </Panel>
+          ) : null}
           <Panel position="bottom-right" className="trace-legend">
             <span><i className="normal-edge" /> supports / defines / verifies</span>
             <span><i className="risk-edge" /> challenges</span>

@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Download, FileDown, Github, Plus, Quote, ShieldAlert, X } from 'lucide-react'
+import { AlertTriangle, Check, CheckCircle2, Download, FileDown, Github, Plus, Quote, ShieldAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import { DEMO_FEEDBACK } from '../core/sample'
 import { downloadMarkdown, exportGithubIssues, exportPrd, exportUserStories } from '../core/exports'
@@ -8,13 +8,15 @@ interface ReviewViewProps {
   project: SpecProject
   onAddFeedback: (title: string, content: string) => void
   onAcceptAll: () => void
+  onResolveImpact: (impactId: string) => void
 }
 
-export function ReviewView({ project, onAddFeedback, onAcceptAll }: ReviewViewProps) {
+export function ReviewView({ project, onAddFeedback, onAcceptAll, onResolveImpact }: ReviewViewProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedback, setFeedback] = useState('')
   const accepted = project.requirements.filter((item) => item.status === 'accepted' || item.status === 'modified').length
   const atRisk = project.requirements.filter((item) => item.status === 'at-risk').length + project.decisions.filter((item) => item.status === 'at-risk').length
+  const openImpacts = project.impacts.filter((item) => item.status !== 'resolved').length
 
   const submitFeedback = () => {
     if (!feedback.trim()) return
@@ -38,18 +40,27 @@ export function ReviewView({ project, onAddFeedback, onAcceptAll }: ReviewViewPr
           <div><span>Requirements</span><strong>{project.requirements.length}</strong><small>{accepted} accepted</small></div>
           <div><span>Decisions</span><strong>{project.decisions.length}</strong><small>{project.questions.length} questions</small></div>
           <div><span>Trace links</span><strong>{project.edges.length}</strong><small>{project.evidence.length} evidence nodes</small></div>
-          <div className={atRisk > 0 ? 'risk' : ''}><span>At risk</span><strong>{atRisk}</strong><small>{project.impacts.length} impact findings</small></div>
+          <div className={atRisk > 0 ? 'risk' : ''}><span>At risk</span><strong>{atRisk}</strong><small>{openImpacts} open impact findings</small></div>
         </div>
 
         {project.impacts.length > 0 ? (
           <div className="impact-section">
-            <div className="subsection-title"><div><ShieldAlert size={18} /><h2>Change impact</h2></div><span>{project.impacts.length} findings</span></div>
+            <div className="subsection-title"><div><ShieldAlert size={18} /><h2>Change impact</h2></div><span>{openImpacts} open · {project.impacts.length} total</span></div>
             <div className="impact-list">
               {project.impacts.map((impact) => (
-                <div key={impact.id} className="impact-row">
-                  <span className={`severity-badge ${impact.severity}`}>{impact.severity}</span>
-                  <p>{impact.explanation}</p>
-                  <code>{impact.affectedNodeIds[0]}</code>
+                <div key={impact.id} className={`impact-row ${impact.status === 'resolved' ? 'resolved' : ''}`}>
+                  <span className={`severity-badge ${impact.status === 'resolved' ? 'resolved' : impact.severity}`}>
+                    {impact.status === 'resolved' ? 'reviewed' : impact.severity}
+                  </span>
+                  <div>
+                    <p>{impact.explanation}</p>
+                    <code>{impact.affectedNodeIds[0]}</code>
+                  </div>
+                  {impact.status === 'resolved' ? <CheckCircle2 size={18} /> : (
+                    <button className="secondary-button" onClick={() => onResolveImpact(impact.id)}>
+                      <Check size={14} /> Confirm valid
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -112,4 +123,3 @@ export function ReviewView({ project, onAddFeedback, onAcceptAll }: ReviewViewPr
     </div>
   )
 }
-

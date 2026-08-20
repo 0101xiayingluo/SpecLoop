@@ -554,6 +554,7 @@ export function addFeedback(project: SpecProject, title: string, content: string
     impacts.push({
       id: stableId('impact', `${source.id}:${decision.id}`),
       severity: mandate ? 'high' : 'medium',
+      status: 'open',
       feedbackEvidenceIds: feedbackEvidence.map((item) => item.id),
       affectedNodeIds: [decision.id],
       explanation: `新反馈与决策“${decision.statement}”共享关键范围词，需重新确认该决策是否仍成立。`,
@@ -566,6 +567,7 @@ export function addFeedback(project: SpecProject, title: string, content: string
     impacts.push({
       id: stableId('impact', `${source.id}:${requirement.id}`),
       severity: mandate ? 'high' : 'medium',
+      status: 'open',
       feedbackEvidenceIds: feedbackEvidence.map((item) => item.id),
       affectedNodeIds: [requirement.id],
       explanation: `新反馈可能改变“${requirement.title}”的范围或验收条件。`,
@@ -577,6 +579,7 @@ export function addFeedback(project: SpecProject, title: string, content: string
     impacts.push({
       id: stableId('impact', `${source.id}:${fallback.id}:unmatched`),
       severity: 'low',
+      status: 'open',
       feedbackEvidenceIds: feedbackEvidence.map((item) => item.id),
       affectedNodeIds: [fallback.id],
       explanation: '未发现强语义重叠；该反馈需要人工归类后再决定是否修改现有需求。',
