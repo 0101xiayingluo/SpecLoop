@@ -3,11 +3,15 @@ import { stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { dirname, extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createAgentRun, readPricing } from './agent-metrics.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = resolve(root, 'dist')
 const port = Number(process.env.PORT || 8787)
+const host = process.env.HOST || '127.0.0.1'
 const model = process.env.OPENAI_MODEL || 'gpt-5-mini'
+const allowedOrigin = process.env.ALLOWED_ORIGIN || ''
+const pricing = readPricing(process.env)
 const maxBodyBytes = 2 * 1024 * 1024
 
 const analysisSchema = {
@@ -75,6 +79,14 @@ function sendJson(response, statusCode, value) {
   response.end(body)
 }
 
+function applyCors(request, response) {
+  if (!allowedOrigin || request.headers.origin !== allowedOrigin) return
+  response.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  response.setHeader('Vary', 'Origin')
+}
+
 async function readJson(request) {
   const chunks = []
   let size = 0
@@ -97,10 +109,9 @@ function extractOutputText(payload) {
 }
 
 async function reason(request, response) {
-  if (!process.env.OPENAI_API_KEY) {
-    sendJson(response, 503, { error: 'OPENAI_API_KEY is not configured' })
-    return
-  }
+  const startedAt = new Date().toISOString()
+  const start = performance.now()
+  const runId = `run-${Date.now().toString(36)}`
   const input = await readJson(request)
   const upstream = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -120,15 +131,69 @@ async function reason(request, response) {
           schema: analysisSchema,
         },
       },
+      store: false,
     }),
   })
+  const completedAt = new Date().toISOString()
+  const serverLatencyMs = performance.now() - start
+  const requestId = upstream.headers.get('x-request-id') || undefined
   if (!upstream.ok) {
     const detail = await upstream.text()
-    sendJson(response, upstream.status, { error: 'Model request failed', detail: detail.slice(0, 800) })
+    sendJson(response, upstream.status, {
+      error: 'Model request failed',
+      detail: detail.slice(0, 800),
+      run: createAgentRun({
+        id: runId,
+        model,
+        status: 'failed',
+        startedAt,
+        completedAt,
+        serverLatencyMs,
+        requestId,
+        pricing,
+        error: detail,
+      }),
+    })
     return
   }
   const payload = await upstream.json()
-  sendJson(response, 200, JSON.parse(extractOutputText(payload)))
+  let analysis
+  try {
+    analysis = JSON.parse(extractOutputText(payload))
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'Model output was not valid JSON'
+    sendJson(response, 502, {
+      error: 'Model output rejected',
+      detail,
+      run: createAgentRun({
+        id: payload.id || runId,
+        model: payload.model || model,
+        status: 'failed',
+        startedAt,
+        completedAt,
+        serverLatencyMs,
+        requestId,
+        usage: payload.usage,
+        pricing,
+        error: detail,
+      }),
+    })
+    return
+  }
+  sendJson(response, 200, {
+    analysis,
+    run: createAgentRun({
+      id: payload.id || runId,
+      model: payload.model || model,
+      status: 'succeeded',
+      startedAt,
+      completedAt,
+      serverLatencyMs,
+      requestId,
+      usage: payload.usage,
+      pricing,
+    }),
+  })
 }
 
 const contentTypes = {
@@ -168,11 +233,24 @@ async function serveStatic(request, response) {
 
 createServer(async (request, response) => {
   try {
+    applyCors(request, response)
+    if (request.method === 'OPTIONS' && request.url?.startsWith('/api/')) {
+      response.writeHead(204).end()
+      return
+    }
     if (request.method === 'GET' && request.url === '/api/health') {
-      sendJson(response, 200, { available: Boolean(process.env.OPENAI_API_KEY), model })
+      sendJson(response, 200, {
+        available: Boolean(process.env.OPENAI_API_KEY),
+        model,
+        pricingConfigured: pricing.configured,
+      })
       return
     }
     if (request.method === 'POST' && request.url === '/api/reason') {
+      if (!process.env.OPENAI_API_KEY) {
+        sendJson(response, 503, { error: 'OPENAI_API_KEY is not configured' })
+        return
+      }
       await reason(request, response)
       return
     }
@@ -184,6 +262,6 @@ createServer(async (request, response) => {
   } catch (error) {
     sendJson(response, 500, { error: error instanceof Error ? error.message : 'Unexpected server error' })
   }
-}).listen(port, '127.0.0.1', () => {
-  console.log(`SpecLoop model server: http://127.0.0.1:${port} (${model})`)
+}).listen(port, host, () => {
+  console.log(`SpecLoop model server: http://${host}:${port} (${model})`)
 })

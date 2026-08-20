@@ -29,6 +29,7 @@ describe('project persistence migration', () => {
     expect(migrated?.preferences.reasonerMode).toBe('demo')
     expect(migrated?.impacts[0].status).toBe('open')
     expect(migrated?.questions).toEqual([])
+    expect(migrated?.agentRuns).toEqual([])
     expect(migrated?.audit).toEqual([])
   })
 

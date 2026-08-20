@@ -15,6 +15,7 @@ SpecLoop 是一个证据驱动的需求澄清与验收 Agent。它把会议记�
 5. 在交互图中从验收标准回溯到原文和行号。
 6. 添加新反馈，复核被标为 `at-risk` 的决策和需求。
 7. 导出带证据引用的 PRD、用户故事或 GitHub Issue Markdown。
+8. 在 Evaluation 查看真实模型调用的 Token、估算成本、延迟、状态和 request ID。
 
 ## Architecture
 
@@ -48,13 +49,29 @@ npm run preview
 ```powershell
 $env:OPENAI_API_KEY="your-key"
 $env:OPENAI_MODEL="gpt-5-mini"
+$env:OPENAI_INPUT_USD_PER_1M="copy-current-provider-rate"
+$env:OPENAI_CACHED_INPUT_USD_PER_1M="copy-current-provider-rate"
+$env:OPENAI_OUTPUT_USD_PER_1M="copy-current-provider-rate"
 npm run build
 npm run start:model
 ```
 
 打开 `http://127.0.0.1:8787/`，在 `Preferences -> Reasoner` 选择 `Model`。模型服务不可用时，系统保留确定性分析结果并写入 `model.analysis.fallback` 审计事件。
 
-服务端适配器使用 OpenAI [Responses API](https://platform.openai.com/docs/api-reference/responses) 的 JSON Schema 输出。模型名可通过 `OPENAI_MODEL` 替换。
+服务端适配器使用 OpenAI [Responses API](https://platform.openai.com/docs/api-reference/responses) 的 JSON Schema 输出，并将响应 `usage` 记录为项目级 Agent Run。每次运行保存输入、缓存输入、输出、推理和总 Token，以及服务端/浏览器端延迟和 provider request ID。成本按服务端配置的每百万 Token 单价估算；未配置单价时界面显示 `Not priced`，不会显示误导性的零成本。
+
+调用设置 `store: false`。模型名可通过 `OPENAI_MODEL` 替换，价格应按部署时的官方报价写入环境变量，不在代码中硬编码。
+
+## Connect a deployed model backend
+
+静态 Pages 不持有密钥。将 `server/agent-server.mjs` 部署到 Node 服务后：
+
+1. 后端设置 `OPENAI_API_KEY`、模型、三项价格变量以及 `HOST=0.0.0.0`。
+2. 后端设置 `ALLOWED_ORIGIN=https://0101xiayingluo.github.io`。
+3. GitHub 仓库变量 `VITE_AGENT_API_URL` 设置为后端公开地址。
+4. 重新运行 Pages workflow。
+
+本地同源运行不需要 `VITE_AGENT_API_URL` 或 CORS 配置。
 
 ## Evaluation and verification
 
@@ -63,12 +80,12 @@ npm run check
 ```
 
 - 8 条带正负样例的冲突 smoke fixtures，在当前小型合成集上 binary precision / recall 均为 100%。
-- 契约测试覆盖 5 问上限、模型伪造 evidence ID 拒绝、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
+- 31 项契约与工作流测试覆盖 5 问上限、模型伪造 evidence ID 拒绝、usage/成本归一化、失败 telemetry、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
 - 该结果只描述仓库内 smoke set，不代表开放域自然语言准确率；限制记录在 [Evaluation](docs/EVALUATION.md)。
 
 ## Deployment
 
-合并到 `main` 后，`pages.yml` 会运行完整检查并部署静态 Demo 到 GitHub Pages。Model 模式需要单独部署 `server/agent-server.mjs`，GitHub Pages 版本会继续使用无需密钥的 Demo Reasoner。
+合并到 `main` 后，`pages.yml` 会运行完整检查并部署到 GitHub Pages。未设置仓库变量 `VITE_AGENT_API_URL` 时运行无需密钥的 Demo Reasoner；配置独立 Node 后端后，同一前端可启用真实 Model Reasoner。
 
 ## Project map
 
@@ -87,6 +104,7 @@ npm run check
 - [PRD](docs/PRD.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evaluation](docs/EVALUATION.md)
+- [Product case study](docs/CASE_STUDY.md)
 - [Three-minute demo](docs/DEMO.md)
 - [Open-source research](docs/OPEN_SOURCE_RESEARCH.md)
 - [Resume notes](docs/RESUME.md)
