@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveImpact, updateAcceptanceCriterion } from './projectActions'
+import { resolveImpact, updateAcceptanceCriterion, updateRequirementDraft } from './projectActions'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './reasoner'
 import { DEMO_FEEDBACK, DEMO_SOURCE } from './sample'
 import { createProject } from './stateMachine'
@@ -37,6 +37,29 @@ describe('project actions', () => {
 
     expect(() => updateAcceptanceCriterion(project, requirement.id, criterion.id, { then: '  ' }))
       .toThrow('Given, When, and Then are all required')
+  })
+
+  it('saves requirement text and acceptance criteria as one transaction', () => {
+    const project = synthesizedDemo()
+    const requirement = project.requirements[0]
+    const criterion = requirement.criteria[0]
+    const updated = updateRequirementDraft(project, requirement.id, {
+      title: '可编辑的需求标题',
+      statement: '系统必须一次保存完整需求草稿。',
+      criteria: [{
+        id: criterion.id,
+        given: '用户正在编辑需求',
+        when: '用户点击保存',
+        then: '标题、正文和验收标准同时更新',
+      }],
+    })
+    const saved = updated.requirements[0]
+
+    expect(saved.title).toBe('可编辑的需求标题')
+    expect(saved.statement).toContain('完整需求草稿')
+    expect(saved.criteria[0].then).toContain('同时更新')
+    expect(saved.status).toBe('modified')
+    expect(updated.audit.at(-1)?.action).toBe('requirement.draft.updated')
   })
 
   it('closes a reviewed impact and clears its affected node risk', () => {

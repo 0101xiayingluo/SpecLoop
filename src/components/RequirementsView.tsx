@@ -5,7 +5,7 @@ import type { Priority, ReviewStatus, SpecProject } from '../core/types'
 interface RequirementsViewProps {
   project: SpecProject
   onUpdate: (requirementId: string, update: { title?: string; statement?: string; priority?: Priority; status?: ReviewStatus }) => void
-  onUpdateCriterion: (requirementId: string, criterionId: string, update: { given?: string; when?: string; then?: string }) => void
+  onSaveDraft: (requirementId: string, update: { title: string; statement: string; criteria: Array<CriterionDraft & { id: string }> }) => void
   onOpenTrace: () => void
 }
 
@@ -20,7 +20,7 @@ function statusLabel(status: ReviewStatus): string {
   return status[0].toUpperCase() + status.slice(1)
 }
 
-export function RequirementsView({ project, onUpdate, onUpdateCriterion, onOpenTrace }: RequirementsViewProps) {
+export function RequirementsView({ project, onUpdate, onSaveDraft, onOpenTrace }: RequirementsViewProps) {
   const [selectedId, setSelectedId] = useState(project.requirements[0]?.id ?? '')
   const [editing, setEditing] = useState(false)
   const selected = useMemo(
@@ -59,9 +59,10 @@ export function RequirementsView({ project, onUpdate, onUpdateCriterion, onOpenT
       setEditError('Title, requirement, and every Given / When / Then field are required.')
       return
     }
-    onUpdate(selected.id, { title: draftTitle.trim(), statement: draftStatement.trim(), status: 'modified' })
-    selected.criteria.forEach((criterion) => {
-      onUpdateCriterion(selected.id, criterion.id, draftCriteria[criterion.id])
+    onSaveDraft(selected.id, {
+      title: draftTitle,
+      statement: draftStatement,
+      criteria: selected.criteria.map((criterion) => ({ id: criterion.id, ...draftCriteria[criterion.id] })),
     })
     setEditing(false)
     setEditError('')

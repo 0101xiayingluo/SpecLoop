@@ -67,6 +67,61 @@ export function updateAcceptanceCriterion(
   }
 }
 
+interface RequirementDraftUpdate {
+  title: string
+  statement: string
+  criteria: Array<Pick<AcceptanceCriterion, 'id' | 'given' | 'when' | 'then'>>
+}
+
+export function updateRequirementDraft(
+  project: SpecProject,
+  requirementId: string,
+  update: RequirementDraftUpdate,
+): SpecProject {
+  const requirement = project.requirements.find((item) => item.id === requirementId)
+  if (!requirement) throw new Error(`Unknown requirement: ${requirementId}`)
+
+  const title = update.title.trim()
+  const statement = update.statement.trim()
+  const criteria = new Map(update.criteria.map((criterion) => [criterion.id, {
+    given: criterion.given.trim(),
+    when: criterion.when.trim(),
+    then: criterion.then.trim(),
+  }]))
+  if (!title || !statement || requirement.criteria.some((criterion) => {
+    const next = criteria.get(criterion.id)
+    return !next?.given || !next.when || !next.then
+  })) {
+    throw new Error('Title, requirement, and every Given / When / Then field are required')
+  }
+
+  const at = nowIso()
+  return {
+    ...project,
+    requirements: project.requirements.map((item) => item.id === requirementId ? {
+      ...item,
+      title,
+      statement,
+      status: 'modified',
+      criteria: item.criteria.map((criterion) => ({
+        ...criterion,
+        ...criteria.get(criterion.id),
+        status: 'modified',
+      })),
+    } : item),
+    updatedAt: at,
+    audit: [
+      ...project.audit,
+      {
+        id: stableId('audit', `requirement-draft:${requirementId}:${at}`),
+        at,
+        action: 'requirement.draft.updated',
+        detail: `${requirementId}: title, statement, ${requirement.criteria.length} acceptance criteria`,
+      },
+    ],
+  }
+}
+
 export function updatePreferences(project: SpecProject, preferences: Partial<Omit<WorkingPreferences, 'updatedAt'>>): SpecProject {
   const at = nowIso()
   return {

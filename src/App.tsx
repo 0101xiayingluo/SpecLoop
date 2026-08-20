@@ -10,7 +10,7 @@ import { TraceView } from './components/TraceView'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './core/reasoner'
 import { clearProject, loadProject, saveProject } from './core/persistence'
 import { enhanceAnalysisWithModel, recordModelFallback } from './core/modelReasoner'
-import { markAllRequirements, resolveImpact, updateAcceptanceCriterion, updatePreferences, updateRequirement } from './core/projectActions'
+import { markAllRequirements, resolveImpact, updatePreferences, updateRequirement, updateRequirementDraft } from './core/projectActions'
 import { DEMO_SOURCE } from './core/sample'
 import { createProject, transition } from './core/stateMachine'
 import type { Priority, ReviewStatus, SourceKind, SpecProject, WorkingPreferences } from './core/types'
@@ -166,11 +166,10 @@ export default function App() {
     update: { title?: string; statement?: string; priority?: Priority; status?: ReviewStatus },
   ) => withErrorBoundary(() => setProject(updateRequirement(project, requirementId, update)))
 
-  const updateCriterion = (
+  const saveRequirementDraft = (
     requirementId: string,
-    criterionId: string,
-    update: { given?: string; when?: string; then?: string },
-  ) => withErrorBoundary(() => setProject(updateAcceptanceCriterion(project, requirementId, criterionId, update)))
+    update: { title: string; statement: string; criteria: Array<{ id: string; given: string; when: string; then: string }> },
+  ) => withErrorBoundary(() => setProject(updateRequirementDraft(project, requirementId, update)))
 
   const updateWorkingPreferences = (change: Partial<Omit<WorkingPreferences, 'updatedAt'>>) => {
     withErrorBoundary(() => setProject(updatePreferences(project, change)))
@@ -178,7 +177,7 @@ export default function App() {
 
   let content
   if (activeView === 'requirements') {
-    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onUpdateCriterion={updateCriterion} onOpenTrace={openTrace} />
+    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onSaveDraft={saveRequirementDraft} onOpenTrace={openTrace} />
   } else if (activeView === 'trace') {
     content = <TraceView project={project} onOpenReview={openReview} />
   } else if (activeView === 'review') {
@@ -197,7 +196,7 @@ export default function App() {
   } else if (project.stage === 'clarify') {
     content = <ClarifyView project={project} onAnswer={answer} onAnswerRecommendations={answerRecommendations} onSynthesize={synthesize} />
   } else {
-    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onUpdateCriterion={updateCriterion} onOpenTrace={openTrace} />
+    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onSaveDraft={saveRequirementDraft} onOpenTrace={openTrace} />
   }
 
   return (
