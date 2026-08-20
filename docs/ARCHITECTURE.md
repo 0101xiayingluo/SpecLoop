@@ -31,6 +31,7 @@ intake -> clarify -> draft -> trace -> review
 - `src/core/modelReasoner.ts` 再次执行 Zod 校验、证据 ID 白名单和问题数量截断。
 - 模型不能直接写 UI、需求或状态机；它只能替换分析 findings 和澄清问题候选。
 - 模型服务失败时，确定性结果保留，并记录 `model.analysis.fallback` 审计事件。
+- 每次 Provider 尝试生成 `AgentRun`：记录真实 usage、服务端与浏览器端延迟、模型、状态、request ID 和可配置价格下的成本估算。
 
 ```text
 material -> deterministic baseline -> optional model proposal
@@ -38,11 +39,35 @@ material -> deterministic baseline -> optional model proposal
                                   -> state machine -> human decision
 ```
 
+## Agent observability
+
+`server/agent-metrics.mjs` 将 Responses API 的 `input_tokens`、缓存输入、`output_tokens`、推理 Token 和总 Token 归一化。成本使用三项服务端环境变量计算，未配置价格时返回 `null`。浏览器只接收运行指标，不接收密钥或价格配置来源之外的服务端环境信息。
+
+```text
+browser request -> Node timer -> Responses API
+                         |            |
+                         |            +-> usage + request id
+                         +-> server latency
+browser response -> client latency -> AgentRun -> local project + Evaluation
+```
+
+远程部署时，Node 服务使用 `HOST=0.0.0.0`，`VITE_AGENT_API_URL` 指向该服务，`ALLOWED_ORIGIN` 只允许指定前端源；本地同源运行不需要 CORS。
+
+公共演示部署还在模型调用前执行四项服务端保护：Origin 校验、固定窗口每 IP 限流、全局并发上限和 Provider 超时。它们降低作品集演示的滥用和成本风险，但不替代生产系统的用户身份、持久化配额与预算告警。
+
+## Product surfaces
+
+- `Case study`：把问题、PM 决策、Agent 机制、已验证指标和下一轮验证放在同一作品集页面。
+- `Guided demo`：一键生成可复现课程项目场景，并连接 Requirements、Trace、Review 和 Evaluation。
+- `Agent control plane`：基于当前项目状态显示 Evidence index、Reasoner proposal、Grounding guard、Human gate 和 Change monitor。
+- `LLM Agent observability`：只展示真实 Provider Agent Run；无调用时保持空状态，不注入演示 Token 或延迟。
+
 ## Persistence and privacy
 
 - 本地项目存储键：`specloop.project.v1`。
 - 默认不向网络发送材料。
 - 只有用户显式选择 Model 模式时，材料证据才发送到本地 `/api/reason` 服务。
 - `OPENAI_API_KEY` 仅由 Node 进程读取，不写入浏览器存储或前端构建。
+- 模型请求使用 `store: false`；项目仍在本地持久化 Agent Run 指标和审计事件。
 - PDF 与 DOCX 解析器按需加载，不增加首屏主包负担。
 - 新建项目需要用户确认才会删除当前本地项目。

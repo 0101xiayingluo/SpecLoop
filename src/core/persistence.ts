@@ -21,6 +21,26 @@ const ImpactSchema = z.object({
   resolvedAt: z.string().optional(),
 }).passthrough()
 
+const AgentRunSchema = z.object({
+  id: z.string(),
+  provider: z.literal('openai'),
+  model: z.string(),
+  status: z.enum(['succeeded', 'failed']),
+  startedAt: z.string(),
+  completedAt: z.string(),
+  requestId: z.string().optional(),
+  inputTokens: z.number().nonnegative(),
+  cachedInputTokens: z.number().nonnegative(),
+  outputTokens: z.number().nonnegative(),
+  reasoningTokens: z.number().nonnegative(),
+  totalTokens: z.number().nonnegative(),
+  serverLatencyMs: z.number().nonnegative(),
+  clientLatencyMs: z.number().nonnegative(),
+  estimatedCostUsd: z.number().nonnegative().nullable(),
+  pricingConfigured: z.boolean(),
+  error: z.string().optional(),
+}).passthrough()
+
 const StoredProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -38,6 +58,7 @@ const StoredProjectSchema = z.object({
   edges: z.array(z.unknown()).optional(),
   preferences: PreferencesSchema,
   impacts: z.array(ImpactSchema).optional(),
+  agentRuns: z.array(AgentRunSchema).optional(),
   audit: z.array(z.unknown()).optional(),
 }).passthrough()
 
@@ -70,6 +91,7 @@ export function normalizeStoredProject(value: unknown): SpecProject | null {
       updatedAt: data.preferences?.updatedAt ?? timestamp,
     },
     impacts: (data.impacts ?? []).map((impact) => ({ ...impact, status: impact.status ?? 'open' })),
+    agentRuns: data.agentRuns ?? [],
     audit: (data.audit ?? []) as SpecProject['audit'],
   }
 }

@@ -7,6 +7,7 @@
 - Trace coverage：需求与验收标准是否都链接原始证据。
 - Change selectivity：新反馈是否挑战相关决策，同时不误伤无关决策。
 - Export integrity：三种 Markdown 输出是否保留验收和证据引用。
+- Agent observability：Provider usage、成本估算、延迟、失败状态和 request ID 是否完整进入项目记录。
 
 ## Current deterministic suite
 
@@ -19,7 +20,9 @@
 - 超过 5 个模型问题时只保留信息增益最高的 5 个。
 - 模型引用不存在的 evidence ID 时拒绝整个模型结果。
 - Provider 不可用时保留确定性 baseline，并留下 fallback 审计事件。
+- Responses usage 能正确区分未缓存输入、缓存输入、输出和推理 Token，并按配置价格估算成本。
+- 未配置价格时成本为 unknown，而不是误报为 0；上游失败 telemetry 可以进入 fallback 记录。
 
 ## Limits
 
-这些测试验证产品契约和小型合成 smoke set，不代表自然语言理解的通用准确率。下一阶段需要扩展脱敏课程材料、公开 GitHub Issue 讨论和人工标注冲突集，并分别报告多标签 precision/recall、question utility、trace faithfulness 和人类修改率。CI 不调用付费模型，因此真实 Provider 的上游可用性和模型质量需要单独的受控评测。
+这些测试验证产品契约和小型合成 smoke set，不代表自然语言理解的通用准确率。下一阶段需要扩展脱敏课程材料、公开 GitHub Issue 讨论和人工标注冲突集，并分别报告多标签 precision/recall、question utility、trace faithfulness 和人类修改率。CI 不调用付费模型，因此真实 Provider 的上游可用性、成本和模型质量需要带 API Key 的受控评测；界面只展示实际 Agent Run，不填充虚构数据。

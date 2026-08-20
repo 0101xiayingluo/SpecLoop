@@ -132,6 +132,26 @@ export interface AuditEvent {
   detail: string
 }
 
+export interface AgentRun {
+  id: string
+  provider: 'openai'
+  model: string
+  status: 'succeeded' | 'failed'
+  startedAt: string
+  completedAt: string
+  requestId?: string
+  inputTokens: number
+  cachedInputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+  totalTokens: number
+  serverLatencyMs: number
+  clientLatencyMs: number
+  estimatedCostUsd: number | null
+  pricingConfigured: boolean
+  error?: string
+}
+
 export interface SpecProject {
   id: string
   name: string
@@ -149,6 +169,7 @@ export interface SpecProject {
   edges: TraceEdge[]
   preferences: WorkingPreferences
   impacts: ImpactFinding[]
+  agentRuns: AgentRun[]
   audit: AuditEvent[]
 }
 

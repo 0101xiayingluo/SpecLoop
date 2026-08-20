@@ -1,16 +1,18 @@
 import {
+  BookOpenCheck,
   ClipboardCheck,
   FileStack,
   FlaskConical,
   GitBranch,
   MessageSquareText,
+  PlayCircle,
   Plus,
   Settings2,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { SpecProject } from '../core/types'
 
-export type AppView = 'workspace' | 'requirements' | 'trace' | 'review' | 'evaluation'
+export type AppView = 'workspace' | 'requirements' | 'trace' | 'review' | 'evaluation' | 'demo' | 'portfolio'
 
 interface ShellProps {
   project: SpecProject
@@ -28,6 +30,8 @@ const navigation = [
   { id: 'trace' as const, label: 'Trace', icon: GitBranch },
   { id: 'review' as const, label: 'Review', icon: ClipboardCheck },
   { id: 'evaluation' as const, label: 'Evaluation', icon: FlaskConical },
+  { id: 'demo' as const, label: 'Guided demo', icon: PlayCircle },
+  { id: 'portfolio' as const, label: 'Case study', icon: BookOpenCheck },
 ]
 
 const stages = [

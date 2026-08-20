@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { nowIso, stableId } from './id'
-import type { ClarificationQuestion, RequirementIssue, SpecProject } from './types'
+import { agentApiUrl } from './api'
+import type { AgentRun, ClarificationQuestion, RequirementIssue, SpecProject } from './types'
 
 const MAX_QUESTIONS = 5
 
@@ -31,7 +32,48 @@ const ModelAnalysisSchema = z.object({
   questions: z.array(ModelQuestionSchema).max(10),
 })
 
+const AgentRunSchema = z.object({
+  id: z.string().min(1),
+  provider: z.literal('openai'),
+  model: z.string().min(1),
+  status: z.enum(['succeeded', 'failed']),
+  startedAt: z.string().min(1),
+  completedAt: z.string().min(1),
+  requestId: z.string().min(1).optional(),
+  inputTokens: z.number().int().nonnegative(),
+  cachedInputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  reasoningTokens: z.number().int().nonnegative(),
+  totalTokens: z.number().int().nonnegative(),
+  serverLatencyMs: z.number().nonnegative(),
+  clientLatencyMs: z.number().nonnegative().optional(),
+  estimatedCostUsd: z.number().nonnegative().nullable(),
+  pricingConfigured: z.boolean(),
+  error: z.string().max(800).optional(),
+})
+
+const ModelReasonerEnvelopeSchema = z.object({
+  analysis: z.unknown(),
+  run: AgentRunSchema,
+})
+
+const ModelErrorResponseSchema = z.object({
+  error: z.string().optional(),
+  detail: z.string().optional(),
+  run: AgentRunSchema.optional(),
+})
+
 export type ModelAnalysis = z.infer<typeof ModelAnalysisSchema>
+
+export class ModelProviderError extends Error {
+  run?: AgentRun
+
+  constructor(message: string, run?: AgentRun) {
+    super(message)
+    this.name = 'ModelProviderError'
+    this.run = run
+  }
+}
 
 function normalizeModelAnalysis(project: SpecProject, payload: unknown): Pick<SpecProject, 'evidence' | 'issues' | 'questions'> {
   const analysis = ModelAnalysisSchema.parse(payload)
@@ -94,25 +136,76 @@ export async function enhanceAnalysisWithModel(
   project: SpecProject,
   request: typeof fetch = fetch,
 ): Promise<SpecProject> {
-  const response = await request('/api/reason', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      evidence: project.evidence.map((item) => ({ id: item.id, quote: item.quote, line: item.lineStart })),
-      preferences: project.preferences,
-      maxQuestions: MAX_QUESTIONS,
-    }),
-  })
-  if (!response.ok) {
-    const message = await response.text().catch(() => '')
-    throw new Error(message || `Model provider returned ${response.status}`)
+  const startedAt = new Date().toISOString()
+  const clientStart = performance.now()
+  let response: Response
+  try {
+    response = await request(agentApiUrl('/api/reason'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        evidence: project.evidence.map((item) => ({ id: item.id, quote: item.quote, line: item.lineStart })),
+        preferences: project.preferences,
+        maxQuestions: MAX_QUESTIONS,
+      }),
+    })
+  } catch (reason) {
+    const message = reason instanceof Error ? reason.message : 'Model provider request failed'
+    const completedAt = new Date().toISOString()
+    throw new ModelProviderError(message, {
+      id: stableId('run', `network:${project.id}:${startedAt}`),
+      provider: 'openai',
+      model: 'unavailable',
+      status: 'failed',
+      startedAt,
+      completedAt,
+      inputTokens: 0,
+      cachedInputTokens: 0,
+      outputTokens: 0,
+      reasoningTokens: 0,
+      totalTokens: 0,
+      serverLatencyMs: 0,
+      clientLatencyMs: Math.round(performance.now() - clientStart),
+      estimatedCostUsd: null,
+      pricingConfigured: false,
+      error: message.slice(0, 800),
+    })
   }
 
-  const normalized = normalizeModelAnalysis(project, await response.json())
+  const payload: unknown = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const parsed = ModelErrorResponseSchema.safeParse(payload)
+    const message = parsed.success
+      ? [parsed.data.error, parsed.data.detail].filter(Boolean).join(': ')
+      : `Model provider returned ${response.status}`
+    const run = parsed.success && parsed.data.run ? {
+      ...parsed.data.run,
+      clientLatencyMs: Math.round(performance.now() - clientStart),
+    } : undefined
+    throw new ModelProviderError(message || `Model provider returned ${response.status}`, run)
+  }
+
+  const result = ModelReasonerEnvelopeSchema.parse(payload)
+  const run: AgentRun = {
+    ...result.run,
+    clientLatencyMs: Math.round(performance.now() - clientStart),
+  }
+  let normalized: Pick<SpecProject, 'evidence' | 'issues' | 'questions'>
+  try {
+    normalized = normalizeModelAnalysis(project, result.analysis)
+  } catch (reason) {
+    const message = reason instanceof Error ? reason.message : 'Model response failed validation'
+    throw new ModelProviderError(`Model response rejected: ${message}`, {
+      ...run,
+      status: 'failed',
+      error: message.slice(0, 800),
+    })
+  }
   const at = nowIso()
   return {
     ...project,
     ...normalized,
+    agentRuns: [...project.agentRuns, run],
     currentQuestionIndex: 0,
     updatedAt: at,
     audit: [
@@ -121,16 +214,17 @@ export async function enhanceAnalysisWithModel(
         id: stableId('audit', `model-analysis:${project.id}:${at}`),
         at,
         action: 'model.analysis.completed',
-        detail: `${normalized.issues.length} issues, ${normalized.questions.length} validated questions`,
+        detail: `${run.model}: ${run.totalTokens} tokens, ${run.clientLatencyMs} ms, ${normalized.issues.length} issues, ${normalized.questions.length} validated questions`,
       },
     ],
   }
 }
 
-export function recordModelFallback(project: SpecProject, reason: string): SpecProject {
+export function recordModelFallback(project: SpecProject, reason: string, run?: AgentRun): SpecProject {
   const at = nowIso()
   return {
     ...project,
+    agentRuns: run ? [...project.agentRuns, run] : project.agentRuns,
     updatedAt: at,
     audit: [
       ...project.audit,

@@ -28,38 +28,117 @@ describe('model reasoner boundary', () => {
       recommendationIndex: 0,
     }))
     const request = vi.fn(async () => new Response(JSON.stringify({
-      issues: [{
-        key: 'scope',
-        kind: 'conflict',
-        title: '材料范围冲突',
-        description: '上传与仅粘贴不能同时成立。',
-        severity: 'high',
-        evidenceIds: [evidenceId],
-      }],
-      questions,
+      analysis: {
+        issues: [{
+          key: 'scope',
+          kind: 'conflict',
+          title: '材料范围冲突',
+          description: '上传与仅粘贴不能同时成立。',
+          severity: 'high',
+          evidenceIds: [evidenceId],
+        }],
+        questions,
+      },
+      run: {
+        id: 'resp-test',
+        provider: 'openai',
+        model: 'gpt-test',
+        status: 'succeeded',
+        startedAt: '2026-08-20T00:00:00.000Z',
+        completedAt: '2026-08-20T00:00:01.000Z',
+        requestId: 'req-test',
+        inputTokens: 1_000,
+        cachedInputTokens: 200,
+        outputTokens: 250,
+        reasoningTokens: 40,
+        totalTokens: 1_250,
+        serverLatencyMs: 900,
+        clientLatencyMs: 0,
+        estimatedCostUsd: 0.00125,
+        pricingConfigured: true,
+      },
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
 
     const enhanced = await enhanceAnalysisWithModel(project, request)
 
     expect(enhanced.questions).toHaveLength(5)
     expect(enhanced.issues[0].evidenceIds).toEqual([evidenceId])
+    expect(enhanced.agentRuns[0]).toMatchObject({
+      id: 'resp-test',
+      totalTokens: 1_250,
+      estimatedCostUsd: 0.00125,
+    })
+    expect(enhanced.agentRuns[0].clientLatencyMs).toBeGreaterThanOrEqual(0)
     expect(enhanced.audit.at(-1)?.action).toBe('model.analysis.completed')
   })
 
   it('rejects model output that invents evidence ids', async () => {
     const project = analyzedProject()
     const request = vi.fn(async () => new Response(JSON.stringify({
-      issues: [{
-        key: 'invented',
-        kind: 'assumption',
-        title: 'Unsupported claim',
-        description: 'This evidence does not exist.',
-        severity: 'high',
-        evidenceIds: ['ev-invented'],
-      }],
-      questions: [],
+      analysis: {
+        issues: [{
+          key: 'invented',
+          kind: 'assumption',
+          title: 'Unsupported claim',
+          description: 'This evidence does not exist.',
+          severity: 'high',
+          evidenceIds: ['ev-invented'],
+        }],
+        questions: [],
+      },
+      run: {
+        id: 'resp-invented',
+        provider: 'openai',
+        model: 'gpt-test',
+        status: 'succeeded',
+        startedAt: '2026-08-20T00:00:00.000Z',
+        completedAt: '2026-08-20T00:00:01.000Z',
+        inputTokens: 100,
+        cachedInputTokens: 0,
+        outputTokens: 20,
+        reasoningTokens: 0,
+        totalTokens: 120,
+        serverLatencyMs: 800,
+        clientLatencyMs: 0,
+        estimatedCostUsd: null,
+        pricingConfigured: false,
+      },
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
 
-    await expect(enhanceAnalysisWithModel(project, request)).rejects.toThrow('unknown evidence')
+    await expect(enhanceAnalysisWithModel(project, request)).rejects.toMatchObject({
+      message: expect.stringContaining('unknown evidence'),
+      run: { id: 'resp-invented', status: 'failed', totalTokens: 120 },
+    })
+  })
+
+  it('exposes failed provider telemetry for deterministic fallback auditing', async () => {
+    const project = analyzedProject()
+    const request = vi.fn(async () => new Response(JSON.stringify({
+      error: 'Model request failed',
+      detail: 'Rate limit exceeded',
+      run: {
+        id: 'run-failed',
+        provider: 'openai',
+        model: 'gpt-test',
+        status: 'failed',
+        startedAt: '2026-08-20T00:00:00.000Z',
+        completedAt: '2026-08-20T00:00:01.000Z',
+        inputTokens: 0,
+        cachedInputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        totalTokens: 0,
+        serverLatencyMs: 700,
+        clientLatencyMs: 0,
+        estimatedCostUsd: null,
+        pricingConfigured: false,
+        error: 'Rate limit exceeded',
+      },
+    }), { status: 429, headers: { 'Content-Type': 'application/json' } }))
+
+    await expect(enhanceAnalysisWithModel(project, request)).rejects.toMatchObject({
+      message: 'Model request failed: Rate limit exceeded',
+      run: { id: 'run-failed', status: 'failed' },
+    })
   })
 })

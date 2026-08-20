@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { ClarifyView } from './components/ClarifyView'
+import { DemoView } from './components/DemoView'
 import { EmptyStageView } from './components/EmptyStageView'
 import { EvaluationView } from './components/EvaluationView'
 import { IntakeView } from './components/IntakeView'
+import { PortfolioView } from './components/PortfolioView'
 import { PreferencesPanel } from './components/PreferencesPanel'
 import { RequirementsView } from './components/RequirementsView'
 import { ReviewView } from './components/ReviewView'
@@ -10,7 +12,8 @@ import { Shell, type AppView } from './components/Shell'
 import { TraceView } from './components/TraceView'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './core/reasoner'
 import { clearProject, loadProject, saveProject } from './core/persistence'
-import { enhanceAnalysisWithModel, recordModelFallback } from './core/modelReasoner'
+import { enhanceAnalysisWithModel, ModelProviderError, recordModelFallback } from './core/modelReasoner'
+import { agentApiUrl } from './core/api'
 import { markAllRequirements, resolveImpact, updatePreferences, updateRequirement, updateRequirementDraft } from './core/projectActions'
 import { DEMO_SOURCE } from './core/sample'
 import { createProject, transition } from './core/stateMachine'
@@ -44,7 +47,7 @@ export default function App() {
 
   useEffect(() => {
     let active = true
-    void fetch('/api/health')
+    void fetch(agentApiUrl('/api/health'))
       .then(async (response) => response.ok ? response.json() as Promise<{ available?: boolean }> : { available: false })
       .then((result) => {
         if (active) setProviderStatus(result.available ? 'available' : 'unavailable')
@@ -74,7 +77,7 @@ export default function App() {
           setProject(await enhanceAnalysisWithModel(baseline))
         } catch (reason) {
           const message = reason instanceof Error ? reason.message : 'Model provider unavailable'
-          setProject(recordModelFallback(baseline, message))
+          setProject(recordModelFallback(baseline, message, reason instanceof ModelProviderError ? reason.run : undefined))
           setError(`Model provider unavailable; deterministic fallback used. ${message}`)
         }
       } else {
@@ -142,7 +145,7 @@ export default function App() {
   }
 
   const changeView = (view: AppView) => {
-    if (view !== 'workspace' && project.requirements.length === 0) {
+    if (!['workspace', 'demo', 'portfolio'].includes(view) && project.requirements.length === 0) {
       setActiveView(view)
       return
     }
@@ -181,7 +184,26 @@ export default function App() {
   }
 
   let content
-  if (activeView !== 'workspace' && project.requirements.length === 0) {
+  if (activeView === 'portfolio') {
+    content = (
+      <PortfolioView
+        onRunDemo={runFullDemo}
+        onOpenDemo={() => setActiveView('demo')}
+        onOpenEvaluation={() => setActiveView('evaluation')}
+      />
+    )
+  } else if (activeView === 'demo') {
+    content = (
+      <DemoView
+        project={project}
+        onRunDemo={runFullDemo}
+        onOpenRequirements={() => setActiveView('requirements')}
+        onOpenTrace={openTrace}
+        onOpenReview={openReview}
+        onOpenEvaluation={() => setActiveView('evaluation')}
+      />
+    )
+  } else if (activeView !== 'workspace' && project.requirements.length === 0) {
     content = (
       <EmptyStageView
         view={activeView}
