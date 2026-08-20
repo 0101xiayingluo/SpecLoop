@@ -9,7 +9,7 @@ import { Shell, type AppView } from './components/Shell'
 import { TraceView } from './components/TraceView'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './core/reasoner'
 import { clearProject, loadProject, saveProject } from './core/persistence'
-import { markAllRequirements, updatePreferences, updateRequirement } from './core/projectActions'
+import { markAllRequirements, updateAcceptanceCriterion, updatePreferences, updateRequirement } from './core/projectActions'
 import { DEMO_SOURCE } from './core/sample'
 import { createProject, transition } from './core/stateMachine'
 import type { Priority, ReviewStatus, SourceKind, SpecProject, WorkingPreferences } from './core/types'
@@ -109,13 +109,19 @@ export default function App() {
     update: { title?: string; statement?: string; priority?: Priority; status?: ReviewStatus },
   ) => setProject((current) => updateRequirement(current, requirementId, update))
 
+  const updateCriterion = (
+    requirementId: string,
+    criterionId: string,
+    update: { given?: string; when?: string; then?: string },
+  ) => setProject((current) => updateAcceptanceCriterion(current, requirementId, criterionId, update))
+
   const updateWorkingPreferences = (change: Partial<Omit<WorkingPreferences, 'updatedAt'>>) => {
     setProject((current) => updatePreferences(current, change))
   }
 
   let content
   if (activeView === 'requirements') {
-    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onOpenTrace={openTrace} />
+    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onUpdateCriterion={updateCriterion} onOpenTrace={openTrace} />
   } else if (activeView === 'trace') {
     content = <TraceView project={project} onOpenReview={openReview} />
   } else if (activeView === 'review') {
@@ -133,7 +139,7 @@ export default function App() {
   } else if (project.stage === 'clarify') {
     content = <ClarifyView project={project} onAnswer={answer} onSynthesize={synthesize} />
   } else {
-    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onOpenTrace={openTrace} />
+    content = <RequirementsView project={project} onUpdate={updateRequirementItem} onUpdateCriterion={updateCriterion} onOpenTrace={openTrace} />
   }
 
   return (
@@ -155,4 +161,3 @@ export default function App() {
     </Shell>
   )
 }
-

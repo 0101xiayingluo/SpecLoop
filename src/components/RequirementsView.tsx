@@ -5,7 +5,14 @@ import type { Priority, ReviewStatus, SpecProject } from '../core/types'
 interface RequirementsViewProps {
   project: SpecProject
   onUpdate: (requirementId: string, update: { title?: string; statement?: string; priority?: Priority; status?: ReviewStatus }) => void
+  onUpdateCriterion: (requirementId: string, criterionId: string, update: { given?: string; when?: string; then?: string }) => void
   onOpenTrace: () => void
+}
+
+interface CriterionDraft {
+  given: string
+  when: string
+  then: string
 }
 
 function statusLabel(status: ReviewStatus): string {
@@ -13,7 +20,7 @@ function statusLabel(status: ReviewStatus): string {
   return status[0].toUpperCase() + status.slice(1)
 }
 
-export function RequirementsView({ project, onUpdate, onOpenTrace }: RequirementsViewProps) {
+export function RequirementsView({ project, onUpdate, onUpdateCriterion, onOpenTrace }: RequirementsViewProps) {
   const [selectedId, setSelectedId] = useState(project.requirements[0]?.id ?? '')
   const [editing, setEditing] = useState(false)
   const selected = useMemo(
@@ -22,27 +29,65 @@ export function RequirementsView({ project, onUpdate, onOpenTrace }: Requirement
   )
   const [draftTitle, setDraftTitle] = useState(selected?.title ?? '')
   const [draftStatement, setDraftStatement] = useState(selected?.statement ?? '')
+  const [draftCriteria, setDraftCriteria] = useState<Record<string, CriterionDraft>>(() =>
+    Object.fromEntries((selected?.criteria ?? []).map((criterion) => [criterion.id, {
+      given: criterion.given,
+      when: criterion.when,
+      then: criterion.then,
+    }])),
+  )
+  const [editError, setEditError] = useState('')
+
+  const resetDrafts = (requirement = selected) => {
+    setDraftTitle(requirement?.title ?? '')
+    setDraftStatement(requirement?.statement ?? '')
+    setDraftCriteria(Object.fromEntries((requirement?.criteria ?? []).map((criterion) => [criterion.id, {
+      given: criterion.given,
+      when: criterion.when,
+      then: criterion.then,
+    }])))
+    setEditError('')
+  }
 
   const saveEdit = () => {
     if (!selected) return
+    const criteriaComplete = selected.criteria.every((criterion) => {
+      const draft = draftCriteria[criterion.id]
+      return draft?.given.trim() && draft.when.trim() && draft.then.trim()
+    })
+    if (!draftTitle.trim() || !draftStatement.trim() || !criteriaComplete) {
+      setEditError('Title, requirement, and every Given / When / Then field are required.')
+      return
+    }
     onUpdate(selected.id, { title: draftTitle.trim(), statement: draftStatement.trim(), status: 'modified' })
+    selected.criteria.forEach((criterion) => {
+      onUpdateCriterion(selected.id, criterion.id, draftCriteria[criterion.id])
+    })
     setEditing(false)
+    setEditError('')
   }
 
   const chooseRequirement = (requirementId: string) => {
     const requirement = project.requirements.find((item) => item.id === requirementId)
     setSelectedId(requirementId)
-    setDraftTitle(requirement?.title ?? '')
-    setDraftStatement(requirement?.statement ?? '')
+    resetDrafts(requirement)
     setEditing(false)
   }
 
   const toggleEditing = () => {
     if (!editing && selected) {
-      setDraftTitle(selected.title)
-      setDraftStatement(selected.statement)
+      resetDrafts(selected)
+    } else {
+      setEditError('')
     }
     setEditing(!editing)
+  }
+
+  const updateCriterionDraft = (criterionId: string, field: keyof CriterionDraft, value: string) => {
+    setDraftCriteria((current) => ({
+      ...current,
+      [criterionId]: { ...current[criterionId], [field]: value },
+    }))
   }
 
   const accepted = project.requirements.filter((item) => item.status === 'accepted' || item.status === 'modified').length
@@ -116,12 +161,28 @@ export function RequirementsView({ project, onUpdate, onOpenTrace }: Requirement
           <div className="inspector-section">
             <span className="field-label">Acceptance criteria</span>
             {selected.criteria.map((criterion) => (
-              <div className="criterion-block" key={criterion.id}>
-                <p><b>Given</b> {criterion.given}</p>
-                <p><b>When</b> {criterion.when}</p>
-                <p><b>Then</b> {criterion.then}</p>
-              </div>
+              editing ? (
+                <div className="criterion-block criterion-editor" key={criterion.id}>
+                  {(['given', 'when', 'then'] as const).map((field) => (
+                    <label key={field}>
+                      <span>{field[0].toUpperCase() + field.slice(1)}</span>
+                      <textarea
+                        aria-label={`${field} acceptance criterion`}
+                        value={draftCriteria[criterion.id]?.[field] ?? ''}
+                        onChange={(event) => updateCriterionDraft(criterion.id, field, event.target.value)}
+                      />
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="criterion-block" key={criterion.id}>
+                  <p><b>Given</b> {criterion.given}</p>
+                  <p><b>When</b> {criterion.when}</p>
+                  <p><b>Then</b> {criterion.then}</p>
+                </div>
+              )
             ))}
+            {editError ? <p className="inline-error" role="alert">{editError}</p> : null}
           </div>
 
           <div className="inspector-section evidence-section">

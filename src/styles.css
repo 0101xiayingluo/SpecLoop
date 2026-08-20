@@ -1121,6 +1121,38 @@ button.requirement-row.selected {
   color: #29342c;
 }
 
+.criterion-editor {
+  display: grid;
+  gap: 9px;
+}
+
+.criterion-editor label {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+.criterion-editor label > span {
+  padding-top: 8px;
+  color: #29342c;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.criterion-editor textarea {
+  width: 100%;
+  min-height: 58px;
+  padding: 7px 8px;
+  resize: vertical;
+  color: #39443c;
+  background: #fbfcfa;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .evidence-section blockquote {
   position: relative;
   margin: 8px 0 0;
