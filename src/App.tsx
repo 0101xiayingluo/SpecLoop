@@ -107,36 +107,35 @@ export default function App() {
   }
 
   const answer = (questionId: string, optionId: string, customAnswer?: string) => {
-    withErrorBoundary(() => setProject((current) => answerQuestion(current, questionId, optionId, customAnswer)))
+    withErrorBoundary(() => setProject(answerQuestion(project, questionId, optionId, customAnswer)))
   }
 
   const answerRecommendations = () => {
-    withErrorBoundary(() => setProject((current) => current.questions.reduce((next, question) => (
+    withErrorBoundary(() => setProject(project.questions.reduce((next, question) => (
       answerQuestion(next, question.id, question.recommendationId ?? question.options[0].id)
-    ), current)))
+    ), project)))
   }
 
   const synthesize = () => {
     withErrorBoundary(() => {
-      setProject((current) => synthesizeProject(current))
+      setProject(synthesizeProject(project))
       setActiveView('requirements')
     })
   }
 
   const openTrace = () => {
     withErrorBoundary(() => {
-      setProject((current) => current.stage === 'draft' ? transition(current, 'trace') : current)
+      setProject(project.stage === 'draft' ? transition(project, 'trace') : project)
       setActiveView('trace')
     })
   }
 
   const openReview = () => {
     withErrorBoundary(() => {
-      setProject((current) => {
-        if (current.stage === 'draft') return transition(transition(current, 'trace'), 'review')
-        if (current.stage === 'trace') return transition(current, 'review')
-        return current
-      })
+      const reviewed = project.stage === 'draft'
+        ? transition(transition(project, 'trace'), 'review')
+        : project.stage === 'trace' ? transition(project, 'review') : project
+      setProject(reviewed)
       setActiveView('review')
     })
   }
@@ -155,25 +154,26 @@ export default function App() {
 
   const reset = () => {
     if (project.sources.length > 0 && !window.confirm('Start a new project? The current local project will be removed.')) return
-    clearProject()
-    setProject(createProject())
-    setActiveView('workspace')
-    setError('')
+    withErrorBoundary(() => {
+      clearProject()
+      setProject(createProject())
+      setActiveView('workspace')
+    })
   }
 
   const updateRequirementItem = (
     requirementId: string,
     update: { title?: string; statement?: string; priority?: Priority; status?: ReviewStatus },
-  ) => setProject((current) => updateRequirement(current, requirementId, update))
+  ) => withErrorBoundary(() => setProject(updateRequirement(project, requirementId, update)))
 
   const updateCriterion = (
     requirementId: string,
     criterionId: string,
     update: { given?: string; when?: string; then?: string },
-  ) => setProject((current) => updateAcceptanceCriterion(current, requirementId, criterionId, update))
+  ) => withErrorBoundary(() => setProject(updateAcceptanceCriterion(project, requirementId, criterionId, update)))
 
   const updateWorkingPreferences = (change: Partial<Omit<WorkingPreferences, 'updatedAt'>>) => {
-    setProject((current) => updatePreferences(current, change))
+    withErrorBoundary(() => setProject(updatePreferences(project, change)))
   }
 
   let content
@@ -185,9 +185,9 @@ export default function App() {
     content = (
       <ReviewView
         project={project}
-        onAddFeedback={(title, value) => setProject((current) => addFeedback(current, title, value))}
-        onAcceptAll={() => setProject((current) => markAllRequirements(current, 'accepted'))}
-        onResolveImpact={(impactId) => setProject((current) => resolveImpact(current, impactId))}
+        onAddFeedback={(title, value) => withErrorBoundary(() => setProject(addFeedback(project, title, value)))}
+        onAcceptAll={() => withErrorBoundary(() => setProject(markAllRequirements(project, 'accepted')))}
+        onResolveImpact={(impactId) => withErrorBoundary(() => setProject(resolveImpact(project, impactId)))}
       />
     )
   } else if (activeView === 'evaluation') {
