@@ -1,0 +1,42 @@
+[
+  {
+    "id": "file-scope-conflict",
+    "input": "产品要求支持上传 PDF。开发计划首版只支持粘贴文本，上传以后再做。",
+    "expectedConflict": "材料导入范围冲突"
+  },
+  {
+    "id": "export-conflict",
+    "input": "验收需要导出 GitHub Issue。开发认为只导出 PRD，Issue 暂时不做。",
+    "expectedConflict": "导出范围冲突"
+  },
+  {
+    "id": "auth-conflict",
+    "input": "系统必须登录后访问。课程演示要求无需登录，匿名即可。",
+    "expectedConflict": "访问控制冲突"
+  },
+  {
+    "id": "realtime-conflict",
+    "input": "状态需要实时更新。开发方案是非实时批量同步。",
+    "expectedConflict": "实时性要求冲突"
+  },
+  {
+    "id": "file-scope-aligned",
+    "input": "课程演示需要上传 PDF，开发确认本周实现文件上传和失败提示。",
+    "expectedConflict": null
+  },
+  {
+    "id": "export-scope-aligned",
+    "input": "验收需要导出 GitHub Issue，开发同意首版实现 GitHub Issue 导出。",
+    "expectedConflict": null
+  },
+  {
+    "id": "auth-scope-aligned",
+    "input": "系统需要登录后访问，并在登录失败时展示错误。",
+    "expectedConflict": null
+  },
+  {
+    "id": "batch-scope-aligned",
+    "input": "首版不要求实时更新，采用批量同步即可。",
+    "expectedConflict": null
+  }
+]
