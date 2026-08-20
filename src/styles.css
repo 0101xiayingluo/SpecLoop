@@ -333,6 +333,11 @@ h2 {
   box-shadow: 0 0 0 3px #e0edcf;
 }
 
+.mode-badge.model span {
+  background: #24669a;
+  box-shadow: 0 0 0 3px #dbeaf3;
+}
+
 .workspace-main {
   position: relative;
   min-width: 0;
@@ -1603,6 +1608,10 @@ button.requirement-row.selected {
   border: 1px solid var(--line-strong);
   border-radius: 5px;
   overflow: hidden;
+}
+
+.reasoner-control {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .segmented-control button {

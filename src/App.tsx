@@ -9,6 +9,7 @@ import { Shell, type AppView } from './components/Shell'
 import { TraceView } from './components/TraceView'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './core/reasoner'
 import { clearProject, loadProject, saveProject } from './core/persistence'
+import { enhanceAnalysisWithModel, recordModelFallback } from './core/modelReasoner'
 import { markAllRequirements, resolveImpact, updateAcceptanceCriterion, updatePreferences, updateRequirement } from './core/projectActions'
 import { DEMO_SOURCE } from './core/sample'
 import { createProject, transition } from './core/stateMachine'
@@ -26,6 +27,7 @@ export default function App() {
   const [activeView, setActiveView] = useState<AppView>(() => initialView(loadProject() ?? createProject()))
   const [preferencesOpen, setPreferencesOpen] = useState(false)
   const [error, setError] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
 
   useEffect(() => {
     saveProject(project)
@@ -40,11 +42,28 @@ export default function App() {
     }
   }
 
-  const analyze = (title: string, content: string, kind: SourceKind) => {
-    withErrorBoundary(() => {
-      setProject((current) => analyzeMaterial(current, title, content, kind))
+  const analyze = async (title: string, content: string, kind: SourceKind) => {
+    setError('')
+    setAnalyzing(true)
+    try {
+      const baseline = analyzeMaterial(project, title, content, kind)
+      if (project.preferences.reasonerMode === 'model') {
+        try {
+          setProject(await enhanceAnalysisWithModel(baseline))
+        } catch (reason) {
+          const message = reason instanceof Error ? reason.message : 'Model provider unavailable'
+          setProject(recordModelFallback(baseline, message))
+          setError(`Model provider unavailable; deterministic fallback used. ${message}`)
+        }
+      } else {
+        setProject(baseline)
+      }
       setActiveView('workspace')
-    })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unexpected analysis error')
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   const loadDemo = () => {
@@ -136,7 +155,7 @@ export default function App() {
   } else if (activeView === 'evaluation') {
     content = <EvaluationView project={project} />
   } else if (project.stage === 'intake') {
-    content = <IntakeView sources={project.sources} onAnalyze={analyze} onLoadDemo={loadDemo} />
+    content = <IntakeView sources={project.sources} analyzing={analyzing} reasonerMode={project.preferences.reasonerMode ?? 'demo'} onAnalyze={analyze} onLoadDemo={loadDemo} />
   } else if (project.stage === 'clarify') {
     content = <ClarifyView project={project} onAnswer={answer} onSynthesize={synthesize} />
   } else {

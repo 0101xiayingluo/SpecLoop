@@ -5,11 +5,13 @@ import type { SourceKind, SourceMaterial } from '../core/types'
 
 interface IntakeViewProps {
   sources: SourceMaterial[]
-  onAnalyze: (title: string, content: string, kind: SourceKind) => void
+  analyzing: boolean
+  reasonerMode: 'demo' | 'model'
+  onAnalyze: (title: string, content: string, kind: SourceKind) => void | Promise<void>
   onLoadDemo: () => void
 }
 
-export function IntakeView({ sources, onAnalyze, onLoadDemo }: IntakeViewProps) {
+export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoadDemo }: IntakeViewProps) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -35,7 +37,7 @@ export function IntakeView({ sources, onAnalyze, onLoadDemo }: IntakeViewProps) 
 
   const submit = () => {
     if (!content.trim()) return
-    onAnalyze(title.trim() || 'Pasted discussion', content.trim(), kind)
+    void onAnalyze(title.trim() || 'Pasted discussion', content.trim(), kind)
   }
 
   return (
@@ -82,8 +84,9 @@ export function IntakeView({ sources, onAnalyze, onLoadDemo }: IntakeViewProps) 
         {error ? <p className="inline-error">{error}</p> : null}
 
         <div className="intake-actions">
-          <button className="primary-button" onClick={submit} disabled={!content.trim() || busy}>
-            <Play size={16} fill="currentColor" /> Analyze evidence
+          <button className="primary-button" onClick={submit} disabled={!content.trim() || busy || analyzing}>
+            {analyzing ? <LoaderCircle className="spin" size={16} /> : <Play size={16} fill="currentColor" />}
+            {analyzing ? 'Analyzing…' : reasonerMode === 'model' ? 'Analyze with model' : 'Analyze evidence'}
           </button>
         </div>
       </section>
@@ -112,4 +115,3 @@ export function IntakeView({ sources, onAnalyze, onLoadDemo }: IntakeViewProps) 
     </div>
   )
 }
-

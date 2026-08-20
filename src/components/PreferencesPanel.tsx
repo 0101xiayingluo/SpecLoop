@@ -22,6 +22,16 @@ export function PreferencesPanel({ open, preferences, onClose, onChange }: Prefe
         </div>
 
         <label className="control-group">
+          <span>Reasoner</span>
+          <div className="segmented-control reasoner-control">
+            {(['demo', 'model'] as const).map((value) => (
+              <button key={value} className={(preferences.reasonerMode ?? 'demo') === value ? 'active' : ''} onClick={() => onChange({ reasonerMode: value })}>
+                {value === 'demo' ? 'Demo' : 'Model'}
+              </button>
+            ))}
+          </div>
+        </label>
+        <label className="control-group">
           <span>Prioritization</span>
           <select value={preferences.priorityMode} onChange={(event) => onChange({ priorityMode: event.target.value as WorkingPreferences['priorityMode'] })}>
             <option value="risk-first">Risk first</option>
@@ -47,11 +57,12 @@ export function PreferencesPanel({ open, preferences, onClose, onChange }: Prefe
         </label>
 
         <div className="memory-note">
-          <strong>Saved locally</strong>
-          <p>These preferences are applied to this project and restored in this browser.</p>
+          <strong>{preferences.reasonerMode === 'model' ? 'Server-side model mode' : 'Deterministic demo mode'}</strong>
+          <p>{preferences.reasonerMode === 'model'
+            ? 'Uses the local /api/reason adapter. API keys never enter browser storage; unavailable providers fall back to the demo reasoner.'
+            : 'Runs offline with reproducible outputs. These preferences are saved in this browser.'}</p>
         </div>
       </aside>
     </div>
   )
 }
-

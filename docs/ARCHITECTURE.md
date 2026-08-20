@@ -2,7 +2,7 @@
 
 ## Runtime
 
-SpecLoop MVP 是浏览器端 React/TypeScript 应用，所有项目数据保存在 `localStorage`。领域层不依赖 React，可以单独测试并在后续迁移到服务端。
+SpecLoop MVP 的产品界面是 React/TypeScript 应用，项目数据默认保存在 `localStorage`。领域层不依赖 React，可独立测试。可选 Node 服务将 OpenAI Responses API 隔离在服务端，浏览器从不接触 API Key。
 
 ## Single-agent state machine
 
@@ -26,12 +26,23 @@ intake -> clarify -> draft -> trace -> review
 
 ## Reasoner boundary
 
-`src/core/reasoner.ts` 当前实现确定性 Demo Reasoner。后续 LLM adapter 必须返回同一结构并通过相同守卫、追踪覆盖和评测，不允许模型直接写 UI 状态。
+- `src/core/reasoner.ts` 提供确定性 Demo Reasoner，保证无密钥演示和回归可复现。
+- `server/agent-server.mjs` 调用 Responses API，并使用 JSON Schema 限制模型输出形状。
+- `src/core/modelReasoner.ts` 再次执行 Zod 校验、证据 ID 白名单和问题数量截断。
+- 模型不能直接写 UI、需求或状态机；它只能替换分析 findings 和澄清问题候选。
+- 模型服务失败时，确定性结果保留，并记录 `model.analysis.fallback` 审计事件。
+
+```text
+material -> deterministic baseline -> optional model proposal
+                                  -> schema + evidence validation
+                                  -> state machine -> human decision
+```
 
 ## Persistence and privacy
 
 - 本地项目存储键：`specloop.project.v1`。
 - 默认不向网络发送材料。
+- 只有用户显式选择 Model 模式时，材料证据才发送到本地 `/api/reason` 服务。
+- `OPENAI_API_KEY` 仅由 Node 进程读取，不写入浏览器存储或前端构建。
 - PDF 与 DOCX 解析器按需加载，不增加首屏主包负担。
 - 新建项目需要用户确认才会删除当前本地项目。
-

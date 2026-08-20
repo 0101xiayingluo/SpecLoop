@@ -61,6 +61,7 @@ export function createProject(name = 'Untitled specification'): SpecProject {
     requirements: [],
     edges: [],
     preferences: {
+      reasonerMode: 'demo',
       priorityMode: 'risk-first',
       writingStyle: 'concise',
       riskTolerance: 'low',
@@ -77,4 +78,3 @@ export function createProject(name = 'Untitled specification'): SpecProject {
     ],
   }
 }
-

@@ -45,7 +45,7 @@ export function Shell({ project, activeView, onViewChange, onNewProject, onOpenP
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-lockup">
-          <img src="/specloop-mark.svg" alt="" width="34" height="34" />
+          <img src={`${import.meta.env.BASE_URL}specloop-mark.svg`} alt="" width="34" height="34" />
           <div>
             <strong>SpecLoop</strong>
             <span>Evidence workspace</span>
@@ -103,11 +103,12 @@ export function Shell({ project, activeView, onViewChange, onNewProject, onOpenP
               </li>
             ))}
           </ol>
-          <div className="mode-badge"><span /> Demo Reasoner</div>
+          <div className={`mode-badge ${project.preferences.reasonerMode === 'model' ? 'model' : ''}`}>
+            <span /> {project.preferences.reasonerMode === 'model' ? 'Model Reasoner' : 'Demo Reasoner'}
+          </div>
         </header>
         <main className="workspace-main">{children}</main>
       </div>
     </div>
   )
 }
-

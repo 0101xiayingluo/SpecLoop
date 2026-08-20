@@ -7,6 +7,7 @@
     "dev": "vite --configLoader native --host 127.0.0.1",
     "build": "tsc -b && vite build --configLoader native",
     "preview": "node scripts/serve.mjs",
+    "start:model": "node server/agent-server.mjs",
     "lint": "eslint .",
     "test": "vitest run --configLoader native",
     "test:watch": "vitest --configLoader native",

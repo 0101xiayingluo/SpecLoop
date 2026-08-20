@@ -1,5 +1,6 @@
 import { CheckCircle2, CircleAlert, GitBranch, ListChecks, MessageSquareMore, Target } from 'lucide-react'
 import { traceCoverage } from '../core/trace'
+import cases from '../../evals/cases.json'
 import type { SpecProject } from '../core/types'
 
 interface EvaluationViewProps {
@@ -25,7 +26,7 @@ export function EvaluationView({ project }: EvaluationViewProps) {
     <div className="evaluation-page">
       <div className="section-heading">
         <div><span className="eyebrow">Live quality report</span><h1>Evaluation</h1></div>
-        <span className="evaluation-run">Current project · deterministic run</span>
+        <span className="evaluation-run">Current project · {cases.length} regression fixtures</span>
       </div>
 
       <div className="evaluation-metrics">

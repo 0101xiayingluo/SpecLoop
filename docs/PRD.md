@@ -30,6 +30,7 @@
 | R6 | 人工接受、修改和优先级调整 | 修改被写入 audit log，本地恢复偏好 |
 | R7 | 新反馈影响分析 | 相关节点变成 `at-risk` 并生成 `challenges` 边 |
 | R8 | 导出三种需求包 | PRD、用户故事、GitHub Issue Markdown 均包含证据引用 |
+| R9 | 可选真实模型 Reasoner | 模型输出通过 schema 和证据白名单验证；服务不可用时回退并审计 |
 
 ## Non-goals
 
@@ -37,7 +38,7 @@
 - 不做 Jira、Linear、GitHub API 双向同步。
 - 不做多人实时编辑和权限系统。
 - 不做多 Agent 调度或自主执行代码。
-- 不把 Demo Reasoner 的启发式结果描述成通用语义理解能力。
+- 不把 smoke fixtures 或 Demo Reasoner 的结果描述成开放域语义理解准确率。
 
 ## Success metrics
 
@@ -46,4 +47,3 @@
 - 状态完整性：未回答问题时无法进入需求生成。
 - 变更敏感性：范围冲突反馈能标出对应旧决策和需求，且不误伤无关的审批决策。
 - 可复现性：同一材料与答案产生相同的问题顺序和产物结构。
-

@@ -108,6 +108,7 @@ export interface TraceEdge {
 }
 
 export interface WorkingPreferences {
+  reasonerMode: 'demo' | 'model'
   priorityMode: 'risk-first' | 'value-first' | 'effort-first'
   writingStyle: 'concise' | 'balanced' | 'detailed'
   riskTolerance: 'low' | 'medium' | 'high'
