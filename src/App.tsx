@@ -24,13 +24,20 @@ function initialView(project: SpecProject): AppView {
 
 export default function App() {
   const [project, setProject] = useState<SpecProject>(() => loadProject() ?? createProject())
-  const [activeView, setActiveView] = useState<AppView>(() => initialView(loadProject() ?? createProject()))
+  const [activeView, setActiveView] = useState<AppView>(() => initialView(project))
   const [preferencesOpen, setPreferencesOpen] = useState(false)
   const [error, setError] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
 
   useEffect(() => {
-    saveProject(project)
+    let errorTimer: number | undefined
+    try {
+      saveProject(project)
+    } catch (reason) {
+      const detail = reason instanceof Error ? reason.message : 'Browser storage is unavailable'
+      errorTimer = window.setTimeout(() => setError(`Project could not be saved locally. ${detail}`), 0)
+    }
+    return () => window.clearTimeout(errorTimer)
   }, [project])
 
   const withErrorBoundary = (action: () => void) => {
