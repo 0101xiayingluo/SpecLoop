@@ -345,6 +345,46 @@ h2 {
   overflow: auto;
 }
 
+.stage-empty {
+  display: grid;
+  min-height: calc(100vh - 58px);
+  padding: 32px;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.stage-empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 18px;
+  place-items: center;
+  color: #40542d;
+  background: #e8f1dc;
+  border: 1px solid #cbdab9;
+  border-radius: 7px;
+}
+
+.stage-empty h1 {
+  max-width: 520px;
+}
+
+.stage-empty p {
+  max-width: 520px;
+  margin: 10px 0 22px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.stage-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+}
+
 .runtime-fallback {
   display: grid;
   min-height: 100vh;

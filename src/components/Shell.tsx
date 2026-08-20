@@ -40,7 +40,6 @@ const stages = [
 
 export function Shell({ project, activeView, onViewChange, onNewProject, onOpenPreferences, providerStatus, children }: ShellProps) {
   const activeStageIndex = stages.findIndex((stage) => stage.id === project.stage)
-  const hasDraft = project.requirements.length > 0
 
   return (
     <div className="app-shell">
@@ -61,14 +60,13 @@ export function Shell({ project, activeView, onViewChange, onNewProject, onOpenP
         <nav className="primary-nav" aria-label="Primary navigation">
           {navigation.map((item) => {
             const Icon = item.icon
-            const disabled = item.id !== 'workspace' && !hasDraft
             return (
               <button
                 key={item.id}
                 className={activeView === item.id ? 'active' : ''}
                 onClick={() => onViewChange(item.id)}
-                disabled={disabled}
-                title={disabled ? 'Generate requirements first' : item.label}
+                title={item.label}
+                aria-current={activeView === item.id ? 'page' : undefined}
               >
                 <Icon size={17} />
                 {item.label}

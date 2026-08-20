@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ClarifyView } from './components/ClarifyView'
+import { EmptyStageView } from './components/EmptyStageView'
 import { EvaluationView } from './components/EvaluationView'
 import { IntakeView } from './components/IntakeView'
 import { PreferencesPanel } from './components/PreferencesPanel'
@@ -141,6 +142,10 @@ export default function App() {
   }
 
   const changeView = (view: AppView) => {
+    if (view !== 'workspace' && project.requirements.length === 0) {
+      setActiveView(view)
+      return
+    }
     if (view === 'trace') {
       openTrace()
       return
@@ -176,7 +181,15 @@ export default function App() {
   }
 
   let content
-  if (activeView === 'requirements') {
+  if (activeView !== 'workspace' && project.requirements.length === 0) {
+    content = (
+      <EmptyStageView
+        view={activeView}
+        onBack={() => setActiveView('workspace')}
+        onRunFullDemo={runFullDemo}
+      />
+    )
+  } else if (activeView === 'requirements') {
     content = <RequirementsView project={project} onUpdate={updateRequirementItem} onSaveDraft={saveRequirementDraft} onOpenTrace={openTrace} />
   } else if (activeView === 'trace') {
     content = <TraceView project={project} onOpenReview={openReview} />
