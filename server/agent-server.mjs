@@ -154,7 +154,15 @@ async function serveStatic(request, response) {
   } catch {
     filePath = resolve(dist, 'index.html')
   }
-  response.writeHead(200, { 'Content-Type': contentTypes[extname(filePath)] || 'application/octet-stream' })
+  const extension = extname(filePath)
+  response.writeHead(200, {
+    'Content-Type': contentTypes[extension] || 'application/octet-stream',
+    'Cache-Control': extension === '.html' ? 'no-store' : 'public, max-age=31536000, immutable',
+  })
+  if (request.method === 'HEAD') {
+    response.end()
+    return
+  }
   createReadStream(filePath).pipe(response)
 }
 
