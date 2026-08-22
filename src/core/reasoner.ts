@@ -1,4 +1,6 @@
 import { nowIso, stableId } from './id'
+import { createSourceMaterial, extractEvidence } from './evidencePipeline'
+import { planAnalysis } from './routing'
 import { transition } from './stateMachine'
 import type {
   AcceptanceCriterion,
@@ -10,15 +12,13 @@ import type {
   RequirementIssue,
   RequirementItem,
   Severity,
+  EvidenceProvenance,
+  IngestionMethod,
   SourceMaterial,
   SpecProject,
   TraceEdge,
   UserProblem,
 } from './types'
-
-const MAX_QUESTIONS = 5
-
-const assumptionPattern = /应该|大概|可能|也许|暂定|先假设|估计|最好|probably|maybe|assum/iu
 
 const conflictRules = [
   {
@@ -107,29 +107,6 @@ const questionByMissingKey: Record<string, Omit<ClarificationQuestion, 'id' | 'i
   },
 }
 
-function splitMaterial(source: SourceMaterial): EvidenceFragment[] {
-  const fragments: EvidenceFragment[] = []
-  const lines = source.content.replace(/\r\n/g, '\n').split('\n')
-  lines.forEach((line, lineIndex) => {
-    const trimmed = line.replace(/^\s*[-*#>]+\s*/, '').trim()
-    if (!trimmed) return
-    const sentences = trimmed.split(/(?<=[。！？!?；;])\s*/u).filter(Boolean)
-    for (const sentence of sentences) {
-      const quote = sentence.trim()
-      if (quote.length < 4) continue
-      fragments.push({
-        id: stableId('ev', `${source.id}:${lineIndex + 1}:${quote}`),
-        sourceId: source.id,
-        quote,
-        lineStart: lineIndex + 1,
-        lineEnd: lineIndex + 1,
-        signal: assumptionPattern.test(quote) ? 'assumption' : 'fact',
-      })
-    }
-  })
-  return fragments
-}
-
 function severityWeight(severity: Severity): number {
   return severity === 'high' ? 3 : severity === 'medium' ? 2 : 1
 }
@@ -187,7 +164,7 @@ function trimQuote(value: string, max = 44): string {
   return value.length <= max ? value : `${value.slice(0, max - 1)}…`
 }
 
-function buildQuestions(issues: RequirementIssue[], evidence: EvidenceFragment[]): ClarificationQuestion[] {
+function buildQuestions(issues: RequirementIssue[], evidence: EvidenceFragment[], questionBudget: number): ClarificationQuestion[] {
   const evidenceById = new Map(evidence.map((item) => [item.id, item]))
   const candidates = issues.map((issue): ClarificationQuestion => {
     const informationGain = severityWeight(issue.severity) * (issue.kind === 'conflict' ? 4 : issue.kind === 'missing' ? 3 : 2)
@@ -241,26 +218,23 @@ function buildQuestions(issues: RequirementIssue[], evidence: EvidenceFragment[]
       right.question.informationGain - left.question.informationGain || left.declarationOrder - right.declarationOrder,
     )
     .map(({ question }) => question)
-    .slice(0, MAX_QUESTIONS)
+    .slice(0, questionBudget)
 }
 
-function createSource(title: string, content: string, kind: SourceMaterial['kind']): SourceMaterial {
-  const createdAt = nowIso()
-  return {
-    id: stableId('source', `${title}:${content}`),
-    title,
-    content,
-    kind,
-    createdAt,
-  }
-}
-
-export function analyzeMaterial(project: SpecProject, title: string, content: string, kind: SourceMaterial['kind'] = 'paste'): SpecProject {
-  const source = createSource(title, content, kind)
+export function analyzeMaterial(
+  project: SpecProject,
+  title: string,
+  content: string,
+  kind: SourceMaterial['kind'] = 'paste',
+  provenance?: EvidenceProvenance,
+  ingestionMethod?: IngestionMethod,
+): SpecProject {
+  const source = createSourceMaterial(title, content, kind, provenance, ingestionMethod, project.sources)
   const sources = [...project.sources, source]
-  const evidence = sources.flatMap(splitMaterial)
+  const evidence = sources.flatMap((item) => extractEvidence(item))
   const issues = detectIssues(evidence)
-  const questions = buildQuestions(issues, evidence)
+  const analysisPlan = planAnalysis(evidence, issues)
+  const questions = buildQuestions(issues, evidence, analysisPlan.questionBudget)
   const at = nowIso()
   const analyzed: SpecProject = {
     ...project,
@@ -269,6 +243,7 @@ export function analyzeMaterial(project: SpecProject, title: string, content: st
     evidence,
     issues,
     questions,
+    analysisPlan,
     currentQuestionIndex: 0,
     stage: 'intake',
     updatedAt: at,
@@ -278,7 +253,7 @@ export function analyzeMaterial(project: SpecProject, title: string, content: st
         id: stableId('audit', `analyze:${source.id}:${at}`),
         at,
         action: 'material.analyzed',
-        detail: `${evidence.length} evidence fragments, ${issues.length} issues, ${questions.length} questions`,
+        detail: `${evidence.length} normalized evidence fragments, ${issues.length} issues, ${questions.length}/${analysisPlan.questionBudget} questions; ${analysisPlan.complexity} -> ${analysisPlan.route}${source.duplicateOf ? '; duplicate source skipped' : ''}`,
       },
     ],
   }
@@ -537,8 +512,22 @@ function isSameProductScope(feedback: string, target: string): boolean {
 }
 
 export function addFeedback(project: SpecProject, title: string, content: string): SpecProject {
-  const source = createSource(title, content, 'feedback')
-  const feedbackEvidence = splitMaterial(source).map((item) => ({ ...item, signal: 'feedback' as const }))
+  const source = createSourceMaterial(title, content, 'feedback', 'product-feedback', 'feedback-flow', project.sources)
+  const feedbackEvidence = extractEvidence(source, 'feedback')
+  if (source.duplicateOf) {
+    const at = nowIso()
+    return {
+      ...project,
+      sources: [...project.sources, source],
+      updatedAt: at,
+      audit: [...project.audit, {
+        id: stableId('audit', `feedback-duplicate:${source.id}:${at}`),
+        at,
+        action: 'feedback.duplicate-skipped',
+        detail: `${source.title} duplicates ${source.duplicateOf}; no new impact was generated`,
+      }],
+    }
+  }
   const impacts: ImpactFinding[] = []
   const feedbackText = feedbackEvidence.map((item) => item.quote).join(' ')
   const mandate = /必须|不能|改为|取消|不再|required|must|cannot|instead/iu.test(feedbackText)

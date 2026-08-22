@@ -14,10 +14,10 @@ import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from 
 import { clearProject, loadProject, saveProject } from './core/persistence'
 import { enhanceAnalysisWithModel, ModelProviderError, recordModelFallback } from './core/modelReasoner'
 import { agentApiUrl } from './core/api'
-import { markAllRequirements, resolveImpact, updatePreferences, updateRequirement, updateRequirementDraft } from './core/projectActions'
+import { markAllRequirements, resolveImpact, reviewFailureCase, updatePreferences, updateRequirement, updateRequirementDraft } from './core/projectActions'
 import { DEMO_SOURCE } from './core/sample'
 import { createProject, transition } from './core/stateMachine'
-import type { Priority, ReviewStatus, SourceKind, SpecProject, WorkingPreferences } from './core/types'
+import type { EvidenceProvenance, Priority, ReviewStatus, SourceKind, SpecProject, WorkingPreferences } from './core/types'
 
 function initialView(project: SpecProject): AppView {
   if (project.stage === 'draft') return 'requirements'
@@ -67,12 +67,12 @@ export default function App() {
     }
   }
 
-  const analyze = async (title: string, content: string, kind: SourceKind) => {
+  const analyze = async (title: string, content: string, kind: SourceKind, provenance: EvidenceProvenance) => {
     setError('')
     setAnalyzing(true)
     try {
-      const baseline = analyzeMaterial(project, title, content, kind)
-      if (project.preferences.reasonerMode === 'model') {
+      const baseline = analyzeMaterial(project, title, content, kind, provenance)
+      if (project.preferences.reasonerMode === 'model' && baseline.analysisPlan?.route === 'model-assisted') {
         try {
           setProject(await enhanceAnalysisWithModel(baseline))
         } catch (reason) {
@@ -225,7 +225,7 @@ export default function App() {
       />
     )
   } else if (activeView === 'evaluation') {
-    content = <EvaluationView project={project} />
+    content = <EvaluationView project={project} onReviewFailure={(failureId, status) => withErrorBoundary(() => setProject(reviewFailureCase(project, failureId, status)))} />
   } else if (project.stage === 'intake') {
     content = <IntakeView sources={project.sources} analyzing={analyzing} reasonerMode={project.preferences.reasonerMode ?? 'demo'} onAnalyze={analyze} onLoadDemo={loadDemo} onRunFullDemo={runFullDemo} />
   } else if (project.stage === 'clarify') {

@@ -1,13 +1,13 @@
 import { FileText, LoaderCircle, Play, Sparkles, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { parseFile } from '../core/files'
-import type { SourceKind, SourceMaterial } from '../core/types'
+import type { EvidenceProvenance, SourceKind, SourceMaterial } from '../core/types'
 
 interface IntakeViewProps {
   sources: SourceMaterial[]
   analyzing: boolean
   reasonerMode: 'demo' | 'model'
-  onAnalyze: (title: string, content: string, kind: SourceKind) => void | Promise<void>
+  onAnalyze: (title: string, content: string, kind: SourceKind, provenance: EvidenceProvenance) => void | Promise<void>
   onLoadDemo: () => void
   onRunFullDemo: () => void
 }
@@ -17,6 +17,7 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [kind, setKind] = useState<SourceKind>('paste')
+  const [provenance, setProvenance] = useState<EvidenceProvenance>('meeting')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -29,6 +30,7 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
       setTitle(parsed.title)
       setContent(parsed.content)
       setKind(parsed.kind)
+      setProvenance('project-document')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'File parsing failed')
     } finally {
@@ -38,7 +40,7 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
 
   const submit = () => {
     if (!content.trim()) return
-    void onAnalyze(title.trim() || 'Pasted discussion', content.trim(), kind)
+    void onAnalyze(title.trim() || 'Pasted discussion', content.trim(), kind, provenance)
   }
 
   return (
@@ -62,6 +64,20 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
         <label className="title-input">
           <span>Source name</span>
           <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Sprint review notes" />
+        </label>
+
+        <label className="title-input">
+          <span>Evidence source</span>
+          <select value={provenance} onChange={(event) => setProvenance(event.target.value as EvidenceProvenance)}>
+            <option value="meeting">Meeting notes</option>
+            <option value="user-interview">User interview</option>
+            <option value="chat">Chat excerpt</option>
+            <option value="product-feedback">Product feedback</option>
+            <option value="github-issue">GitHub issue</option>
+            <option value="project-document">Project document</option>
+            <option value="behavior-log">Behavior log</option>
+            <option value="other">Other</option>
+          </select>
         </label>
 
         <div className="material-editor">
@@ -116,7 +132,7 @@ export function IntakeView({ sources, analyzing, reasonerMode, onAnalyze, onLoad
             {sources.map((source) => (
               <li key={source.id}>
                 <FileText size={16} />
-                <div><strong>{source.title}</strong><span>{source.kind} · {source.content.length.toLocaleString()} chars</span></div>
+                <div><strong>{source.title}</strong><span>{source.provenance} · {source.ingestionMethod} · {source.content.length.toLocaleString()} chars{source.duplicateOf ? ' · duplicate skipped' : ''}</span></div>
               </li>
             ))}
           </ul>

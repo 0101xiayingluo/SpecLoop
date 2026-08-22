@@ -96,6 +96,12 @@ export function updateRequirementDraft(
   }
 
   const at = nowIso()
+  const observed = `${requirement.title}\n${requirement.statement}\n${requirement.criteria.map((criterion) => `${criterion.given} | ${criterion.when} | ${criterion.then}`).join('\n')}`
+  const expected = `${title}\n${statement}\n${requirement.criteria.map((criterion) => {
+    const next = criteria.get(criterion.id)
+    return `${next?.given} | ${next?.when} | ${next?.then}`
+  }).join('\n')}`
+  const changed = observed !== expected
   return {
     ...project,
     requirements: project.requirements.map((item) => item.id === requirementId ? {
@@ -109,6 +115,16 @@ export function updateRequirementDraft(
         status: 'modified',
       })),
     } : item),
+    failureCases: changed ? [...project.failureCases, {
+      id: stableId('failure', `human-correction:${requirementId}:${at}`),
+      createdAt: at,
+      status: 'pending-review' as const,
+      dimension: 'human-correction' as const,
+      summary: `Human corrected generated requirement: ${requirement.title}`,
+      evidenceIds: requirement.evidenceIds,
+      observed,
+      expected,
+    }] : project.failureCases,
     updatedAt: at,
     audit: [
       ...project.audit,
@@ -119,6 +135,23 @@ export function updateRequirementDraft(
         detail: `${requirementId}: title, statement, ${requirement.criteria.length} acceptance criteria`,
       },
     ],
+  }
+}
+
+export function reviewFailureCase(project: SpecProject, failureId: string, status: 'accepted' | 'rejected'): SpecProject {
+  const failure = project.failureCases.find((item) => item.id === failureId)
+  if (!failure) throw new Error(`Unknown failure case: ${failureId}`)
+  const at = nowIso()
+  return {
+    ...project,
+    failureCases: project.failureCases.map((item) => item.id === failureId ? { ...item, status, reviewedAt: at } : item),
+    updatedAt: at,
+    audit: [...project.audit, {
+      id: stableId('audit', `failure:${failureId}:${status}:${at}`),
+      at,
+      action: 'failure-case.reviewed',
+      detail: `${failure.dimension}: ${status}; ${failure.summary}`,
+    }],
   }
 }
 

@@ -59,6 +59,9 @@ const StoredProjectSchema = z.object({
   preferences: PreferencesSchema,
   impacts: z.array(ImpactSchema).optional(),
   agentRuns: z.array(AgentRunSchema).optional(),
+  analysisPlan: z.unknown().optional(),
+  modelSelfAssessment: z.unknown().optional(),
+  failureCases: z.array(z.unknown()).optional(),
   audit: z.array(z.unknown()).optional(),
 }).passthrough()
 
@@ -74,7 +77,12 @@ export function normalizeStoredProject(value: unknown): SpecProject | null {
     stage: data.stage,
     createdAt: data.createdAt ?? timestamp,
     updatedAt: timestamp,
-    sources: data.sources as SpecProject['sources'],
+    sources: (data.sources as SpecProject['sources']).map((source) => ({
+      ...source,
+      provenance: source.provenance ?? (source.kind === 'feedback' ? 'product-feedback' : 'other'),
+      ingestionMethod: source.ingestionMethod ?? (source.kind === 'paste' ? 'paste' : source.kind === 'feedback' ? 'feedback-flow' : 'upload'),
+      fingerprint: source.fingerprint ?? source.id,
+    })),
     evidence: data.evidence as SpecProject['evidence'],
     issues: (data.issues ?? []) as SpecProject['issues'],
     questions: (data.questions ?? []) as SpecProject['questions'],
@@ -92,6 +100,9 @@ export function normalizeStoredProject(value: unknown): SpecProject | null {
     },
     impacts: (data.impacts ?? []).map((impact) => ({ ...impact, status: impact.status ?? 'open' })),
     agentRuns: data.agentRuns ?? [],
+    analysisPlan: data.analysisPlan as SpecProject['analysisPlan'],
+    modelSelfAssessment: data.modelSelfAssessment as SpecProject['modelSelfAssessment'],
+    failureCases: (data.failureCases ?? []) as SpecProject['failureCases'],
     audit: (data.audit ?? []) as SpecProject['audit'],
   }
 }

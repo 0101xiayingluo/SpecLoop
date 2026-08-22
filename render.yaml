@@ -9,6 +9,8 @@ services:
         sync: false
       - key: OPENAI_MODEL
         value: gpt-5-mini
+      - key: OPENAI_MODEL_SMALL
+        value: gpt-5-mini
       - key: OPENAI_INPUT_USD_PER_1M
         sync: false
       - key: OPENAI_CACHED_INPUT_USD_PER_1M

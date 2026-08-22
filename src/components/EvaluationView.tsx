@@ -1,10 +1,12 @@
-import { Activity, ArrowRight, CheckCircle2, CircleAlert, Coins, Cpu, FileSearch, GitBranch, ListChecks, MessageSquareMore, Radar, ShieldCheck, Target, Timer, UserCheck } from 'lucide-react'
+import { Activity, ArrowRight, Check, CheckCircle2, CircleAlert, Coins, Cpu, FileSearch, GitBranch, ListChecks, MessageSquareMore, Radar, ShieldCheck, Target, Timer, UserCheck, X } from 'lucide-react'
 import { traceCoverage } from '../core/trace'
+import { evaluateDimensions } from '../core/evaluation'
 import cases from '../../evals/cases.json'
 import type { SpecProject } from '../core/types'
 
 interface EvaluationViewProps {
   project: SpecProject
+  onReviewFailure: (failureId: string, status: 'accepted' | 'rejected') => void
 }
 
 function formatCost(value: number | null): string {
@@ -18,7 +20,7 @@ function formatLatency(value: number): string {
   return `${(value / 1_000).toFixed(2)} s`
 }
 
-export function EvaluationView({ project }: EvaluationViewProps) {
+export function EvaluationView({ project, onReviewFailure }: EvaluationViewProps) {
   const coverage = traceCoverage(project)
   const answered = project.questions.filter((item) => item.answer).length
   const accepted = project.requirements.filter((item) => item.status === 'accepted' || item.status === 'modified').length
@@ -37,7 +39,9 @@ export function EvaluationView({ project }: EvaluationViewProps) {
     && project.requirements.every((item) => item.evidenceIds.length > 0 && item.evidenceIds.every((id) => knownEvidenceIds.has(id)))
   const humanGatePassed = project.questions.length > 0 && answered === project.questions.length
   const feedbackCount = project.sources.filter((item) => item.kind === 'feedback').length
-  const latestRun = project.agentRuns.at(-1)
+  const uniqueSources = project.sources.filter((source) => !source.duplicateOf)
+  const pendingFailures = project.failureCases.filter((failure) => failure.status === 'pending-review')
+  const dimensions = evaluateDimensions(project, cases)
 
   const controlStages = [
     {
@@ -48,9 +52,9 @@ export function EvaluationView({ project }: EvaluationViewProps) {
     },
     {
       icon: Cpu,
-      label: 'Reasoner proposal',
+      label: 'Adaptive router',
       status: project.issues.length > 0 ? 'passed' : 'waiting',
-      detail: latestRun ? `${latestRun.model} · ${latestRun.status}` : project.issues.length > 0 ? 'Deterministic baseline' : 'No proposal yet',
+      detail: project.analysisPlan ? `${project.analysisPlan.complexity} · ${project.analysisPlan.route} · ${project.analysisPlan.questionBudget}Q` : 'No route yet',
     },
     {
       icon: ShieldCheck,
@@ -93,6 +97,19 @@ export function EvaluationView({ project }: EvaluationViewProps) {
         <div><Target size={18} /><span>Acceptance shape</span><strong>{criteriaTotal === 0 ? 0 : Math.round(criteriaComplete / criteriaTotal * 100)}%</strong><small>{criteriaComplete}/{criteriaTotal} complete</small></div>
         <div><ListChecks size={18} /><span>Human review</span><strong>{project.requirements.length === 0 ? 0 : Math.round(accepted / project.requirements.length * 100)}%</strong><small>{accepted}/{project.requirements.length} reviewed</small></div>
       </div>
+
+      <section className="agent-control-panel">
+        <div className="subsection-title">
+          <div><FileSearch size={17} /><h2>Evidence acquisition pipeline</h2></div>
+          <span>{uniqueSources.length}/{project.sources.length} unique sources · {new Set(project.sources.map((source) => source.provenance)).size} provenance types</span>
+        </div>
+        <div className="agent-metric-strip">
+          <div><FileSearch size={17} /><span>Normalized fragments</span><strong>{project.evidence.length}</strong><small>cleaned, segmented, source-linked</small></div>
+          <div><ListChecks size={17} /><span>Duplicate inputs</span><strong>{project.sources.filter((source) => source.duplicateOf).length}</strong><small>registered but excluded from analysis</small></div>
+          <div><Cpu size={17} /><span>Complexity route</span><strong>{project.analysisPlan?.complexity ?? 'Pending'}</strong><small>{project.analysisPlan?.route ?? 'awaiting evidence'}</small></div>
+          <div><UserCheck size={17} /><span>Review policy</span><strong>{project.analysisPlan?.reviewRequired || project.modelSelfAssessment?.reviewRecommended ? 'Required' : 'Standard'}</strong><small>{project.modelSelfAssessment ? `${Math.round(project.modelSelfAssessment.confidence * 100)}% model self-confidence` : `${project.analysisPlan?.questionBudget ?? 0} question budget`}</small></div>
+        </div>
+      </section>
 
       <section className="agent-control-panel">
         <div className="subsection-title">
@@ -154,6 +171,30 @@ export function EvaluationView({ project }: EvaluationViewProps) {
             {check.pass ? <CheckCircle2 size={18} /> : <CircleAlert size={18} />}
             <span>{check.label}</span>
             <strong>{check.pass ? 'PASS' : 'REVIEW'}</strong>
+          </div>
+        ))}
+      </section>
+
+      <section className="failure-pool">
+        <div className="subsection-title"><div><CircleAlert size={17} /><h2>Reviewed failure loop</h2></div><span>{pendingFailures.length} pending · {project.failureCases.filter((item) => item.status === 'accepted').length} regression assets</span></div>
+        {project.failureCases.length === 0 ? (
+          <div className="agent-run-empty">Provider failures, grounding rejections, and human corrections will enter this review queue.</div>
+        ) : project.failureCases.slice().reverse().map((failure) => (
+          <div className="failure-row" key={failure.id}>
+            <div><strong>{failure.dimension}</strong><span>{failure.summary}</span><small>{failure.evidenceIds.length} linked evidence items · {failure.status}</small></div>
+            {failure.status === 'pending-review' ? <div className="failure-actions">
+              <button className="icon-button" title="Accept as regression asset" onClick={() => onReviewFailure(failure.id, 'accepted')}><Check size={15} /></button>
+              <button className="icon-button" title="Reject sample" onClick={() => onReviewFailure(failure.id, 'rejected')}><X size={15} /></button>
+            </div> : <span className={`agent-run-status ${failure.status === 'accepted' ? 'succeeded' : 'failed'}`}>{failure.status}</span>}
+          </div>
+        ))}
+      </section>
+
+      <section className="evaluation-matrix">
+        <div className="subsection-title"><div><Target size={17} /><h2>Six-dimensional evaluation</h2></div><span>fixture metrics and live project gates stay separate</span></div>
+        {dimensions.map((dimension) => (
+          <div className="dimension-row" key={dimension.key}>
+            <span>{dimension.label}</span><strong>{dimension.result}</strong><small>{dimension.basis}</small><b className={`dimension-status ${dimension.status}`}>{dimension.status}</b>
           </div>
         ))}
       </section>

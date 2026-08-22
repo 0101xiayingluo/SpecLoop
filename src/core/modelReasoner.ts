@@ -30,6 +30,11 @@ const ModelQuestionSchema = z.object({
 const ModelAnalysisSchema = z.object({
   issues: z.array(ModelIssueSchema).max(16),
   questions: z.array(ModelQuestionSchema).max(10),
+  selfAssessment: z.object({
+    confidence: z.number().min(0).max(1),
+    reviewRecommended: z.boolean(),
+    unresolvedRisks: z.array(z.string().min(1).max(240)).max(6),
+  }),
 })
 
 const AgentRunSchema = z.object({
@@ -75,7 +80,7 @@ export class ModelProviderError extends Error {
   }
 }
 
-function normalizeModelAnalysis(project: SpecProject, payload: unknown): Pick<SpecProject, 'evidence' | 'issues' | 'questions'> {
+function normalizeModelAnalysis(project: SpecProject, payload: unknown): Pick<SpecProject, 'evidence' | 'issues' | 'questions' | 'modelSelfAssessment'> {
   const analysis = ModelAnalysisSchema.parse(payload)
   const validEvidenceIds = new Set(project.evidence.map((item) => item.id))
   const issuesByKey = new Map<string, RequirementIssue>()
@@ -117,7 +122,7 @@ function normalizeModelAnalysis(project: SpecProject, payload: unknown): Pick<Sp
     })
     .filter((question): question is ClarificationQuestion => Boolean(question))
     .sort((left, right) => right.informationGain - left.informationGain)
-    .slice(0, MAX_QUESTIONS)
+    .slice(0, Math.min(MAX_QUESTIONS, project.analysisPlan?.questionBudget ?? MAX_QUESTIONS))
 
   const issueSignal = new Map<string, 'conflict' | 'assumption' | 'constraint'>()
   for (const issue of issuesByKey.values()) {
@@ -129,6 +134,7 @@ function normalizeModelAnalysis(project: SpecProject, payload: unknown): Pick<Sp
     evidence: project.evidence.map((item) => ({ ...item, signal: issueSignal.get(item.id) ?? item.signal })),
     issues: [...issuesByKey.values()],
     questions,
+    modelSelfAssessment: analysis.selfAssessment,
   }
 }
 
@@ -146,7 +152,12 @@ export async function enhanceAnalysisWithModel(
       body: JSON.stringify({
         evidence: project.evidence.map((item) => ({ id: item.id, quote: item.quote, line: item.lineStart })),
         preferences: project.preferences,
-        maxQuestions: MAX_QUESTIONS,
+        maxQuestions: Math.min(MAX_QUESTIONS, project.analysisPlan?.questionBudget ?? MAX_QUESTIONS),
+        routing: {
+          complexity: project.analysisPlan?.complexity ?? 'complex',
+          requestedTier: project.analysisPlan?.complexity === 'high-risk' ? 'large' : 'small',
+          reviewRequired: project.analysisPlan?.reviewRequired ?? true,
+        },
       }),
     })
   } catch (reason) {
@@ -190,7 +201,7 @@ export async function enhanceAnalysisWithModel(
     ...result.run,
     clientLatencyMs: Math.round(performance.now() - clientStart),
   }
-  let normalized: Pick<SpecProject, 'evidence' | 'issues' | 'questions'>
+  let normalized: Pick<SpecProject, 'evidence' | 'issues' | 'questions' | 'modelSelfAssessment'>
   try {
     normalized = normalizeModelAnalysis(project, result.analysis)
   } catch (reason) {
@@ -214,7 +225,7 @@ export async function enhanceAnalysisWithModel(
         id: stableId('audit', `model-analysis:${project.id}:${at}`),
         at,
         action: 'model.analysis.completed',
-        detail: `${run.model}: ${run.totalTokens} tokens, ${run.clientLatencyMs} ms, ${normalized.issues.length} issues, ${normalized.questions.length} validated questions`,
+        detail: `${run.model}: ${run.totalTokens} tokens, ${run.clientLatencyMs} ms, ${normalized.issues.length} issues, ${normalized.questions.length} validated questions; self-confidence ${Math.round((normalized.modelSelfAssessment?.confidence ?? 0) * 100)}%`,
       },
     ],
   }
@@ -222,9 +233,20 @@ export async function enhanceAnalysisWithModel(
 
 export function recordModelFallback(project: SpecProject, reason: string, run?: AgentRun): SpecProject {
   const at = nowIso()
+  const dimension = /evidence|ground/i.test(reason) ? 'grounding' as const : /schema|valid/i.test(reason) ? 'schema' as const : 'provider' as const
   return {
     ...project,
     agentRuns: run ? [...project.agentRuns, run] : project.agentRuns,
+    failureCases: [...project.failureCases, {
+      id: stableId('failure', `${dimension}:${project.id}:${at}`),
+      createdAt: at,
+      status: 'pending-review',
+      dimension,
+      summary: 'Model path failed and deterministic baseline was retained',
+      evidenceIds: project.evidence.map((item) => item.id),
+      observed: reason.slice(0, 800),
+      expected: 'Return schema-valid, evidence-grounded analysis within the adaptive question budget.',
+    }],
     updatedAt: at,
     audit: [
       ...project.audit,

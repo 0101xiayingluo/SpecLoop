@@ -38,6 +38,7 @@ describe('model reasoner boundary', () => {
           evidenceIds: [evidenceId],
         }],
         questions,
+        selfAssessment: { confidence: 0.72, reviewRecommended: true, unresolvedRisks: ['Review authority is unclear.'] },
       },
       run: {
         id: 'resp-test',
@@ -61,7 +62,8 @@ describe('model reasoner boundary', () => {
 
     const enhanced = await enhanceAnalysisWithModel(project, request)
 
-    expect(enhanced.questions).toHaveLength(5)
+    expect(project.analysisPlan).toMatchObject({ complexity: 'complex', questionBudget: 3 })
+    expect(enhanced.questions).toHaveLength(project.analysisPlan?.questionBudget ?? 5)
     expect(enhanced.issues[0].evidenceIds).toEqual([evidenceId])
     expect(enhanced.agentRuns[0]).toMatchObject({
       id: 'resp-test',
@@ -85,6 +87,7 @@ describe('model reasoner boundary', () => {
           evidenceIds: ['ev-invented'],
         }],
         questions: [],
+        selfAssessment: { confidence: 0.4, reviewRecommended: true, unresolvedRisks: ['Citation is unsupported.'] },
       },
       run: {
         id: 'resp-invented',

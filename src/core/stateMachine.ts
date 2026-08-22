@@ -69,6 +69,7 @@ export function createProject(name = 'Untitled specification'): SpecProject {
     },
     impacts: [],
     agentRuns: [],
+    failureCases: [],
     audit: [
       {
         id: stableId('audit', `${name}:${at}`),
