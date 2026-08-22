@@ -119,6 +119,7 @@ npm run check
 - [Business hypothesis and north star](docs/BUSINESS_CASE.md)
 - [Deployment guide](docs/DEPLOYMENT.md)
 - [Three-minute demo](docs/DEMO.md)
+- [Product demo script](docs/DEMO_SCRIPT.md)
 - [Open-source research](docs/OPEN_SOURCE_RESEARCH.md)
 
 ## License
