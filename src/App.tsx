@@ -15,7 +15,7 @@ import { clearProject, loadProject, saveProject } from './core/persistence'
 import { enhanceAnalysisWithModel, ModelProviderError, recordModelFallback } from './core/modelReasoner'
 import { agentApiUrl } from './core/api'
 import { markAllRequirements, resolveImpact, reviewFailureCase, updatePreferences, updateRequirement, updateRequirementDraft } from './core/projectActions'
-import { DEMO_SOURCE } from './core/sample'
+import { DEMO_FEEDBACK, DEMO_SOURCE } from './core/sample'
 import { createProject, transition } from './core/stateMachine'
 import type { EvidenceProvenance, Priority, ReviewStatus, SourceKind, SpecProject, WorkingPreferences } from './core/types'
 
@@ -93,7 +93,7 @@ export default function App() {
 
   const loadDemo = () => {
     withErrorBoundary(() => {
-      const demo = analyzeMaterial(createProject('Course project requirements'), 'Course project discussion', DEMO_SOURCE, 'markdown')
+      const demo = analyzeMaterial(createProject('Course project requirements'), 'Course project discussion', DEMO_SOURCE, 'markdown', 'meeting')
       setProject(demo)
       setActiveView('workspace')
     })
@@ -101,12 +101,35 @@ export default function App() {
 
   const runFullDemo = () => {
     withErrorBoundary(() => {
-      let demo = analyzeMaterial(createProject('Course project requirements'), 'Course project discussion', DEMO_SOURCE, 'markdown')
+      let demo = analyzeMaterial(createProject('Course project requirements'), 'Course project discussion', DEMO_SOURCE, 'markdown', 'meeting')
       for (const question of demo.questions) {
         demo = answerQuestion(demo, question.id, question.recommendationId ?? question.options[0].id)
       }
       setProject(synthesizeProject(demo))
       setActiveView('requirements')
+    })
+  }
+
+  const runGuidedDemo = () => {
+    withErrorBoundary(() => {
+      let demo = analyzeMaterial(createProject('Course project requirements'), 'Course project discussion', DEMO_SOURCE, 'markdown', 'meeting')
+      for (const question of demo.questions) {
+        demo = answerQuestion(demo, question.id, question.recommendationId ?? question.options[0].id)
+      }
+      setProject(synthesizeProject(demo))
+      setActiveView('demo')
+    })
+  }
+
+  const testDemoChange = () => {
+    withErrorBoundary(() => {
+      const hasDemoFeedback = project.sources.some((source) => source.kind === 'feedback' && source.content === DEMO_FEEDBACK)
+      const changed = hasDemoFeedback ? project : addFeedback(project, 'New course acceptance rule', DEMO_FEEDBACK)
+      const reviewed = changed.stage === 'draft'
+        ? transition(transition(changed, 'trace'), 'review')
+        : changed.stage === 'trace' ? transition(changed, 'review') : changed
+      setProject(reviewed)
+      setActiveView('review')
     })
   }
 
@@ -196,10 +219,11 @@ export default function App() {
     content = (
       <DemoView
         project={project}
-        onRunDemo={runFullDemo}
+        onRunDemo={runGuidedDemo}
         onOpenRequirements={() => setActiveView('requirements')}
         onOpenTrace={openTrace}
         onOpenReview={openReview}
+        onTestChange={testDemoChange}
         onOpenEvaluation={() => setActiveView('evaluation')}
       />
     )

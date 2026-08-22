@@ -6,19 +6,19 @@
 
 ## 0:15-0:30 · Reproducible scenario
 
-进入 `Guided demo` 并点击 `Run scenario`。系统生成课程项目范围争议的完整项目，所有页面立即可用。
+进入 `Guided demo` 并点击 `Run scenario`。页面原地展示证据片段数、`high-risk` 路由和 5 问预算，所有产品页面立即可用。
 
 ## 0:30-0:50 · Evidence and human gate
 
-打开 Requirements，选择一条需求，展示来源原文、行号、Given/When/Then 和人工修改入口。
+打开 Requirements，选择一条需求，展示来源原文、行号、Given/When/Then 和人工修改入口；指出模型只提案，人类拥有最终写入权。
 
 ## 0:50-1:05 · Trace and change
 
-打开 Trace 点击验收节点回溯原文；进入 Review 添加“必须现场上传 PDF”，展示相关节点变为 `at-risk`。
+返回 Guided Demo 点击 `Inject PDF requirement`，系统自动进入 Review；展示相关节点变为 `at-risk`，不相关决策保持原状态。然后打开 Trace 点击验收节点回溯原文。
 
 ## 1:05-1:30 · Agent control plane
 
-打开 Evaluation，展示证据索引、Reasoner proposal、Grounding guard、人类门禁、变更监控，以及真实模型调用产生的 Token/成本/延迟。明确没有真实调用时不展示虚构数字。
+打开 Evaluation，展示证据采集 pipeline、自适应路由、Grounding guard、人类门禁、失败样本池和六维评测，以及真实模型调用产生的 Token/成本/延迟。明确没有真实调用时显示 `waiting`，不展示虚构数字。
 
 # Three-minute deep dive
 
@@ -28,7 +28,7 @@
 
 ## 0:30-1:10 · Clarification
 
-展示左侧 conflict / missing / assumption 分类，以及一次只出现一个问题。选择推荐选项并说明：问题数量被限制为 5，优先解决会改变实现和验收的未知项。
+展示左侧 conflict / missing / assumption 分类，以及一次只出现一个问题。选择推荐选项并说明：系统按复杂度分配 1 / 3 / 5 问，优先解决会改变实现和验收的未知项。
 
 ## 1:10-1:45 · Requirements
 
@@ -44,8 +44,8 @@
 
 ## 2:50-3:00 · Evaluation and export
 
-打开 Evaluation 展示质量门和审计日志，最后导出 PRD。强调 8 条 fixture 只是可复现 smoke set，而非开放域准确率声明。
+打开 Evaluation 展示六维质量门、失败样本审核和审计日志，最后导出 PRD。强调 8 条 fixture 只是可复现 smoke set，而非开放域准确率声明。
 
 ## Optional model mode
 
-在 Preferences 中切换 Model。说明 API Key 只存在 Node 服务端，模型输出必须通过 JSON Schema、Zod、证据 ID 白名单和 5 问上限，失败时自动回退到确定性 Reasoner。
+在 Preferences 中切换 Model。说明 API Key 只存在 Node 服务端；复杂 / 高风险材料可路由到不同模型，模型输出必须通过 JSON Schema、Zod、证据 ID 白名单和自适应问题预算，失败时自动回退到确定性 Reasoner。

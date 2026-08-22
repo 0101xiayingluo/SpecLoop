@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, FileSearch, GitBranch, Play, Radar, ShieldCheck } from 'lucide-react'
+import { ArrowRight, CheckCircle2, GitBranch, Play, Radar, Route, ShieldCheck } from 'lucide-react'
 import type { SpecProject } from '../core/types'
 
 interface DemoViewProps {
@@ -7,10 +7,11 @@ interface DemoViewProps {
   onOpenRequirements: () => void
   onOpenTrace: () => void
   onOpenReview: () => void
+  onTestChange: () => void
   onOpenEvaluation: () => void
 }
 
-export function DemoView({ project, onRunDemo, onOpenRequirements, onOpenTrace, onOpenReview, onOpenEvaluation }: DemoViewProps) {
+export function DemoView({ project, onRunDemo, onOpenRequirements, onOpenTrace, onOpenReview, onTestChange, onOpenEvaluation }: DemoViewProps) {
   const ready = project.requirements.length > 0
   const citations = project.requirements.reduce((sum, item) => sum + item.evidenceIds.length + item.criteria.reduce((count, criterion) => count + criterion.evidenceIds.length, 0), 0)
   const atRisk = project.requirements.filter((item) => item.status === 'at-risk').length + project.decisions.filter((item) => item.status === 'at-risk').length
@@ -30,18 +31,18 @@ export function DemoView({ project, onRunDemo, onOpenRequirements, onOpenTrace, 
       <div className="demo-checkpoints">
         <article className={ready ? 'complete' : ''}>
           <div className="demo-step-number">01</div>
-          <FileSearch size={20} />
-          <h2>Detect ambiguity</h2>
-          <p>Find conflicts, missing conditions and assumptions without erasing the original wording.</p>
-          <strong>{ready ? `${project.evidence.length} evidence fragments` : 'Waiting for scenario'}</strong>
+          <Route size={20} />
+          <h2>Acquire and route</h2>
+          <p>Normalize source evidence, preserve provenance and route by deterministic complexity.</p>
+          <strong>{ready ? `${project.evidence.length} fragments · ${project.analysisPlan?.complexity ?? 'unscored'}` : 'Waiting for scenario'}</strong>
           {ready ? <button className="text-button" onClick={onOpenRequirements}>Inspect outputs <ArrowRight size={14} /></button> : null}
         </article>
         <article className={ready ? 'complete' : ''}>
           <div className="demo-step-number">02</div>
           <ShieldCheck size={20} />
           <h2>Guard decisions</h2>
-          <p>Bound the question queue and require a human decision before synthesis can continue.</p>
-          <strong>{ready ? `${project.questions.length} questions · all resolved` : 'State guard inactive'}</strong>
+          <p>Use adaptive question budgets and require a human decision before synthesis can continue.</p>
+          <strong>{ready ? `${project.questions.length}/${project.analysisPlan?.questionBudget ?? 5} questions · all resolved` : 'State guard inactive'}</strong>
           {ready ? <button className="text-button" onClick={onOpenRequirements}>Review requirements <ArrowRight size={14} /></button> : null}
         </article>
         <article className={ready ? 'complete' : ''}>
@@ -56,15 +57,15 @@ export function DemoView({ project, onRunDemo, onOpenRequirements, onOpenTrace, 
           <div className="demo-step-number">04</div>
           <Radar size={20} />
           <h2>Monitor change</h2>
-          <p>New feedback marks only related decisions and requirements as at risk for human review.</p>
+          <p>Inject a changed acceptance rule and mark only related decisions and requirements at risk.</p>
           <strong>{ready ? `${atRisk} nodes currently at risk` : 'Change monitor inactive'}</strong>
-          {ready ? <button className="text-button" onClick={onOpenReview}>Test new feedback <ArrowRight size={14} /></button> : null}
+          {ready ? <button className="text-button" onClick={atRisk > 0 ? onOpenReview : onTestChange}>{atRisk > 0 ? 'Inspect impact' : 'Inject PDF requirement'} <ArrowRight size={14} /></button> : null}
         </article>
       </div>
 
       <section className="demo-proof-bar">
         <CheckCircle2 size={18} />
-        <div><strong>{ready ? 'Demo state is reproducible' : 'No model key required for this proof'}</strong><span>{ready ? 'The same source and answers produce the same workflow structure.' : 'Run the scenario to populate every product surface.'}</span></div>
+        <div><strong>{ready ? 'Demo state is reproducible and review-gated' : 'No model key required for this proof'}</strong><span>{ready ? 'The same evidence, routing policy and answers produce the same auditable workflow.' : 'Run the scenario to populate every product surface.'}</span></div>
         <button className="secondary-button" onClick={onOpenEvaluation} disabled={!ready}>View evaluation</button>
       </section>
     </div>
