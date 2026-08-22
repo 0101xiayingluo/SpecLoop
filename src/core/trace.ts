@@ -25,10 +25,13 @@ export function buildTraceNodes(project: SpecProject): TraceNode[] {
 }
 
 export function traceCoverage(project: SpecProject): { covered: number; total: number; percentage: number } {
+  const knownEvidenceIds = new Set(project.evidence.map((item) => item.id))
+  const linksKnownEvidence = (evidenceIds: string[]) =>
+    evidenceIds.length > 0 && evidenceIds.every((id) => knownEvidenceIds.has(id))
   const total = project.requirements.reduce((sum, requirement) => sum + 1 + requirement.criteria.length, 0)
   const covered = project.requirements.reduce((sum, requirement) => {
-    const requirementCovered = requirement.evidenceIds.length > 0 ? 1 : 0
-    const criteriaCovered = requirement.criteria.filter((criterion) => criterion.evidenceIds.length > 0).length
+    const requirementCovered = linksKnownEvidence(requirement.evidenceIds) ? 1 : 0
+    const criteriaCovered = requirement.criteria.filter((criterion) => linksKnownEvidence(criterion.evidenceIds)).length
     return sum + requirementCovered + criteriaCovered
   }, 0)
   return { covered, total, percentage: total === 0 ? 0 : Math.round((covered / total) * 100) }

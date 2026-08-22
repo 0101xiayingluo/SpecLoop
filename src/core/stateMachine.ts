@@ -12,11 +12,15 @@ const allowedTransitions: Record<WorkflowStage, WorkflowStage[]> = {
 export function canTransition(project: SpecProject, next: WorkflowStage): boolean {
   if (!allowedTransitions[project.stage].includes(next)) return false
   if (next === 'clarify') return project.evidence.length > 0
-  if (next === 'draft') return project.questions.every((question) => Boolean(question.answer))
+  if (next === 'draft') return project.questions.every((question) => Boolean(question.answer || question.skippedAt))
   if (next === 'trace') return project.requirements.length > 0
   if (next === 'review') {
+    const knownEvidenceIds = new Set(project.evidence.map((item) => item.id))
+    const linksKnownEvidence = (evidenceIds: string[]) =>
+      evidenceIds.length > 0 && evidenceIds.every((id) => knownEvidenceIds.has(id))
     return project.requirements.every(
-      (requirement) => requirement.evidenceIds.length > 0 && requirement.criteria.every((criterion) => criterion.evidenceIds.length > 0),
+      (requirement) => linksKnownEvidence(requirement.evidenceIds)
+        && requirement.criteria.every((criterion) => linksKnownEvidence(criterion.evidenceIds)),
     )
   }
   return true

@@ -13,6 +13,8 @@ interface DemoViewProps {
 
 export function DemoView({ project, onRunDemo, onOpenRequirements, onOpenTrace, onOpenReview, onTestChange, onOpenEvaluation }: DemoViewProps) {
   const ready = project.requirements.length > 0
+  const answered = project.questions.filter((item) => item.answer).length
+  const skipped = project.questions.filter((item) => item.skippedAt).length
   const citations = project.requirements.reduce((sum, item) => sum + item.evidenceIds.length + item.criteria.reduce((count, criterion) => count + criterion.evidenceIds.length, 0), 0)
   const atRisk = project.requirements.filter((item) => item.status === 'at-risk').length + project.decisions.filter((item) => item.status === 'at-risk').length
 
@@ -34,7 +36,7 @@ export function DemoView({ project, onRunDemo, onOpenRequirements, onOpenTrace, 
           <Route size={20} />
           <h2>Acquire and route</h2>
           <p>Normalize source evidence, preserve provenance and route by deterministic complexity.</p>
-          <strong>{ready ? `${project.evidence.length} fragments · ${project.analysisPlan?.complexity ?? 'unscored'}` : 'Waiting for scenario'}</strong>
+          <strong>{ready ? `${project.evidence.length} fragments · ${project.analysisPlan?.complexity ?? 'unscored'} → ${project.analysisPlan?.requestedTier ?? 'legacy'}` : 'Waiting for scenario'}</strong>
           {ready ? <button className="text-button" onClick={onOpenRequirements}>Inspect outputs <ArrowRight size={14} /></button> : null}
         </article>
         <article className={ready ? 'complete' : ''}>
@@ -42,7 +44,7 @@ export function DemoView({ project, onRunDemo, onOpenRequirements, onOpenTrace, 
           <ShieldCheck size={20} />
           <h2>Guard decisions</h2>
           <p>Use adaptive question budgets and require a human decision before synthesis can continue.</p>
-          <strong>{ready ? `${project.questions.length}/${project.analysisPlan?.questionBudget ?? 5} questions · all resolved` : 'State guard inactive'}</strong>
+          <strong>{ready ? `${answered}/${project.analysisPlan?.questionBudget ?? 5} answered · ${skipped} stopped early` : 'State guard inactive'}</strong>
           {ready ? <button className="text-button" onClick={onOpenRequirements}>Review requirements <ArrowRight size={14} /></button> : null}
         </article>
         <article className={ready ? 'complete' : ''}>

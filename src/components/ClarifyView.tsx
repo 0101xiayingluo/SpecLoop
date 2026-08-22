@@ -84,7 +84,8 @@ export function ClarifyView({ project, onAnswer, onAnswerRecommendations, onSynt
   const current = project.questions[project.currentQuestionIndex]
   const activeIssueIds = new Set(current?.issueIds ?? [])
   const resolvedCount = project.questions.filter((item) => item.answer).length
-  const complete = project.questions.every((item) => Boolean(item.answer))
+  const skippedCount = project.questions.filter((item) => item.skippedAt).length
+  const complete = project.questions.every((item) => Boolean(item.answer || item.skippedAt))
 
   return (
     <div className="clarify-layout">
@@ -127,7 +128,7 @@ export function ClarifyView({ project, onAnswer, onAnswerRecommendations, onSynt
             <div className="complete-icon"><Check size={24} /></div>
             <span className="eyebrow">Clarification complete</span>
             <h1>{resolvedCount} decisions recorded</h1>
-            <p>All selected high-impact ambiguities have an explicit decision.</p>
+            <p>{skippedCount > 0 ? `${skippedCount} low-information question${skippedCount === 1 ? '' : 's'} stopped early after blocking risks were resolved.` : 'All selected high-impact ambiguities have an explicit decision.'}</p>
             <button className="primary-button" onClick={onSynthesize}>Generate requirements <ArrowRight size={16} /></button>
           </div>
         )}

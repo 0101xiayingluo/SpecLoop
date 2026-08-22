@@ -1,0 +1,74 @@
+[
+  {
+    "id": "simple-trace-view",
+    "input": "参与者可以查看证据原文和对应行号。",
+    "expectedComplexity": "simple",
+    "rationale": "No contradiction, uncertain assumption, or blocking condition."
+  },
+  {
+    "id": "simple-upload-failure-defined",
+    "input": "首版支持粘贴材料，解析失败时展示原因并允许重试。",
+    "expectedComplexity": "simple",
+    "rationale": "The only triggered failure condition is already defined."
+  },
+  {
+    "id": "simple-export-aligned",
+    "input": "产品和开发确认首版导出 PRD，后续范围另行评审。",
+    "expectedComplexity": "simple",
+    "rationale": "The scope is aligned and contains no uncertain language."
+  },
+  {
+    "id": "simple-auth-aligned",
+    "input": "系统需要登录后访问，并在登录失败时展示错误。",
+    "expectedComplexity": "simple",
+    "rationale": "Authentication behavior is consistent."
+  },
+  {
+    "id": "upload-failure-risk-floor-regression",
+    "input": "用户需要上传 PDF 文档。",
+    "expectedComplexity": "complex",
+    "rationale": "Upload failure behavior is a high-severity missing condition; policy v1 incorrectly routed it as simple."
+  },
+  {
+    "id": "complex-file-scope",
+    "input": "产品要求支持上传 PDF。开发计划首版只支持粘贴文本，上传以后再做。",
+    "expectedComplexity": "complex",
+    "rationale": "One explicit scope conflict requires model assistance and review."
+  },
+  {
+    "id": "complex-auth-conflict",
+    "input": "系统必须登录后访问。课程演示要求无需登录，匿名即可。",
+    "expectedComplexity": "complex",
+    "rationale": "One access-control conflict is consequential but bounded."
+  },
+  {
+    "id": "complex-review-assumption",
+    "input": "团队暂定由 Agent 自动接受需求。审批流程可能以后定义。风险规则也许另行补充。",
+    "expectedComplexity": "complex",
+    "rationale": "An uncertain authority decision plus a high-severity missing approval owner requires review."
+  },
+  {
+    "id": "high-risk-file-export",
+    "input": "产品要求支持上传 PDF。开发计划首版只支持粘贴文本，上传以后再做。\n验收需要导出 GitHub Issue。开发认为只导出 PRD，Issue 暂时不做。",
+    "expectedComplexity": "high-risk",
+    "rationale": "Two independent scope conflicts can invalidate implementation and acceptance."
+  },
+  {
+    "id": "high-risk-auth-realtime",
+    "input": "系统必须登录后访问。课程演示要求无需登录，匿名即可。\n状态必须实时更新。开发方案采用非实时批量同步。",
+    "expectedComplexity": "high-risk",
+    "rationale": "Two independent high-severity conflicts require the large tier and human gate."
+  },
+  {
+    "id": "high-risk-file-auth",
+    "input": "用户必须上传 DOCX。研发决定首版只支持粘贴，文件上传暂不做。\n系统必须鉴权。演示现场要求匿名访问，无需登录。",
+    "expectedComplexity": "high-risk",
+    "rationale": "File-scope and access-control conflicts combine into a high-risk route."
+  },
+  {
+    "id": "high-risk-export-realtime",
+    "input": "产品要求导出 GitHub Issue。开发只做 PRD，Issue 不做。\n评审状态需要实时刷新。工程方案是定时批量同步，非实时更新。",
+    "expectedComplexity": "high-risk",
+    "rationale": "Export and freshness conflicts affect separate downstream acceptance paths."
+  }
+]

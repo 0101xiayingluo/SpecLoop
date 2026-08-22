@@ -70,6 +70,16 @@ export function normalizeStoredProject(value: unknown): SpecProject | null {
   if (!result.success) return null
   const data = result.data
   const timestamp = data.updatedAt ?? data.createdAt ?? new Date().toISOString()
+  const storedPlan = data.analysisPlan as SpecProject['analysisPlan']
+  const analysisPlan = storedPlan ? {
+    ...storedPlan,
+    policyVersion: storedPlan.policyVersion ?? 'legacy',
+    requestedTier: storedPlan.requestedTier ?? (storedPlan.complexity === 'simple' ? 'none' as const : storedPlan.complexity === 'high-risk' ? 'large' as const : 'small' as const),
+    reviewTriggers: storedPlan.reviewTriggers ?? (storedPlan.reviewRequired ? ['high-severity' as const] : []),
+    signals: storedPlan.signals ?? { evidenceCount: data.evidence.length, conflicts: 0, highSeverity: 0, assumptions: 0 },
+    earlyStop: storedPlan.earlyStop ?? { minInformationGain: 7, triggered: false, skippedQuestionIds: [] },
+  } : undefined
+  const modelSelfAssessment = data.modelSelfAssessment as SpecProject['modelSelfAssessment']
 
   return {
     id: data.id,
@@ -100,9 +110,14 @@ export function normalizeStoredProject(value: unknown): SpecProject | null {
     },
     impacts: (data.impacts ?? []).map((impact) => ({ ...impact, status: impact.status ?? 'open' })),
     agentRuns: data.agentRuns ?? [],
-    analysisPlan: data.analysisPlan as SpecProject['analysisPlan'],
-    modelSelfAssessment: data.modelSelfAssessment as SpecProject['modelSelfAssessment'],
-    failureCases: (data.failureCases ?? []) as SpecProject['failureCases'],
+    analysisPlan,
+    modelSelfAssessment: modelSelfAssessment ? { ...modelSelfAssessment, calibrationStatus: 'uncalibrated' } : undefined,
+    failureCases: ((data.failureCases ?? []) as SpecProject['failureCases']).map((failure) => ({
+      ...failure,
+      workflowStage: failure.workflowStage ?? data.stage,
+      rootCause: failure.rootCause ?? (failure.dimension === 'human-correction' ? 'human-correction' : failure.dimension === 'schema' ? 'schema-invalid' : failure.dimension === 'grounding' ? 'grounding-rejection' : 'provider-unavailable'),
+      fingerprint: failure.fingerprint ?? failure.id,
+    })),
     audit: (data.audit ?? []) as SpecProject['audit'],
   }
 }

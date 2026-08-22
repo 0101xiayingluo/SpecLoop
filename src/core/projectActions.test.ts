@@ -60,7 +60,13 @@ describe('project actions', () => {
     expect(saved.criteria[0].then).toContain('同时更新')
     expect(saved.status).toBe('modified')
     expect(updated.audit.at(-1)?.action).toBe('requirement.draft.updated')
-    expect(updated.failureCases.at(-1)).toMatchObject({ dimension: 'human-correction', status: 'pending-review' })
+    expect(updated.failureCases.at(-1)).toMatchObject({
+      dimension: 'human-correction',
+      status: 'pending-review',
+      workflowStage: 'draft',
+      rootCause: 'human-correction',
+      fingerprint: expect.stringMatching(/^failure-fingerprint-/),
+    })
   })
 
   it('requires human review before a correction becomes a regression asset', () => {

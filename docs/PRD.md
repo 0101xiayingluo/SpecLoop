@@ -24,7 +24,7 @@
 | --- | --- | --- |
 | R1 | 支持粘贴和上传常见文档 | 原文与行号被保存为 evidence fragments |
 | R2 | 检测冲突、缺失条件和假设 | Findings 按类型和风险展示 |
-| R3 | 按简单 / 复杂 / 高风险分配 1 / 3 / 5 个高信息增益问题 | 一次显示一题，未回答不能生成需求 |
+| R3 | 按简单 / 复杂 / 高风险分配 1 / 3 / 5 个问题上限，并在阻断项解决后按信息增益早停 | 一次显示一题；未回答且未被策略早停的问题会阻止生成需求 |
 | R4 | 生成需求和 Given/When/Then | 每条需求至少一条验收标准 |
 | R5 | 端到端追踪 | 每条需求和验收标准至少链接一个证据片段 |
 | R6 | 人工接受、修改和优先级调整 | 修改被写入 audit log，本地恢复偏好 |
@@ -38,6 +38,10 @@
 | R14 | 可复现作品集与 Guided Demo | 作品集区分验证结果和目标；Demo 可一键生成完整业务场景 |
 | R15 | 证据采集 pipeline | 保存业务来源和采集方式；归一化、切分和指纹去重不破坏原文追踪 |
 | R16 | 审核门控的失败样本闭环 | Provider 失败、非法引用和人工修订先进入待审核池，人工接受后才能成为回归资产 |
+| R17 | 路由与 bad case 可解释 | 保存 signals、requestedTier、reviewTriggers、rootCause、fingerprint 和 relatedRunId；Evaluation 显示三分类混淆矩阵 |
+| R18 | 模型能力边界与 graceful degradation | simple 保持 deterministic；complex 失败降级为 deterministic-review；high-risk 硬门失败直接 manual-review |
+| R19 | 商业效果事件模型 | Pilot 记录需求包进入交付、因需求歧义重新打开、人工接管、审核时长和 AgentRun 成本 |
+| R20 | 证据质量政策 | 来源类型仅作 provenance；claim 按可验证性、直接性、时效性和交叉佐证评审，情绪强度不自动提高事实可信度或优先级 |
 
 ## Non-goals
 
@@ -49,9 +53,9 @@
 
 ## Success metrics
 
-- 追踪覆盖率：需求与验收标准的来源覆盖率为 100%。
-- 问题效率：按材料复杂度分配 1 / 3 / 5 个正式澄清问题，5 个为绝对上限。
-- 状态完整性：未回答问题时无法进入需求生成。
+- 追踪覆盖率：每个需求和验收标准至少链接一个当前项目 evidence ID，且所有引用均属于当前项目；覆盖率为 100%。
+- 问题效率：`Σ informationGain(answered) / answeredCount`，同时报告 `answered / budget` 和早停数；5 个为绝对上限。
+- 状态完整性：未回答且未被确定性策略早停的问题无法进入需求生成。
 - 变更敏感性：范围冲突反馈能标出对应旧决策和需求，且不误伤无关的审批决策。
 - 可复现性：同一材料与答案产生相同的问题顺序和产物结构。
 
@@ -64,3 +68,7 @@
 - Cost：单次澄清分析的平均估算成本不高于 0.02 美元，超出时优先缩短证据上下文而非降低追踪约束。
 - Reliability：排除密钥未配置后，Provider fallback 率低于 5%。
 - Human utility：至少 70% 的模型澄清问题被用户直接接受或仅轻微修改。
+
+## Commercial pilot metric
+
+北极星指标为 `rework-free delivery rate = 未因需求歧义重新打开的已接受需求包 / 进入交付的已接受需求包`。当前尚未接入交付生命周期事件，因此 baseline 为 `not measured`。商业价值按 `避免返工小时 × 人力成本 - 模型成本 - 人工审核成本` 计算，不引用未经验证的行业返工比例。
