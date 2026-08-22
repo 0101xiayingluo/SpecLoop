@@ -1,5 +1,7 @@
 # 90-second portfolio demo
 
+逐字口播、屏幕动作和异常预案见 [Product demo script](DEMO_SCRIPT.md)。
+
 ## 0:00-0:15 · Business problem
 
 打开 `Case study`，用一句话说明：SpecLoop 不是自动写 PRD，而是把冲突讨论变成可追踪、可验收、可重审的产品决策。
