@@ -13,7 +13,7 @@
 
 - Inspected commit: `bf88c9f9a82fa370c7a7257aa2b3cf10b457b65c`
 - Relevant files: `templates/commands/clarify.md`, `templates/spec-template.md`, `workflows/speckit/workflow.yml`
-- Adopted: 覆盖分类扫描、最多 5 个高影响问题、一次一题、人类审批门、验收标准先于实现。
+- Adopted: 覆盖分类扫描、自适应 1 / 3 / 5 个高影响问题、一次一题、人类审批门、验收标准先于实现。
 - Changed: SpecLoop 的问题直接链接原始证据，并保留回答生成的产品决策节点。
 - Rejected for MVP: 分支生成、代码计划、任务执行和多集成工作流。
 
@@ -27,4 +27,3 @@
 ## Product differentiation
 
 OpenSpec 和 Spec Kit 主要从已经提出的功能或代码仓库开始组织规格。SpecLoop 解决更上游的问题：从混乱的真实讨论里找出不一致、只问值得问的问题，并让每个产品结论回到原话。
-

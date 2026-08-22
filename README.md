@@ -10,7 +10,7 @@ SpecLoop 是一个证据驱动的需求澄清与验收 Agent。它把会议记�
 
 1. 粘贴材料，或上传 TXT、Markdown、JSON、PDF、DOCX。
 2. 查看冲突、缺失条件和未经验证的假设。
-3. 逐个回答最多 5 个高信息增益问题。
+3. 按材料复杂度逐个回答 1 / 3 / 5 个高信息增益问题。
 4. 编辑需求、优先级和 Given / When / Then 验收标准。
 5. 在交互图中从验收标准回溯到原文和行号。
 6. 添加新反馈，复核被标为 `at-risk` 的决策和需求。
@@ -31,7 +31,7 @@ flowchart LR
     F --> H["PRD / stories / issues"]
 ```
 
-领域状态机始终拥有最终控制权。模型只能提出结构化 findings 和问题；Zod 校验、证据 ID 白名单、5 问上限和状态守卫会在模型输出进入项目之前执行。
+领域状态机始终拥有最终控制权。模型只能提出结构化 findings、问题和自评信号；Zod 校验、证据 ID 白名单、自适应问题预算和状态守卫会在模型输出进入项目之前执行。
 
 ## Run without an API key
 
@@ -85,7 +85,7 @@ npm run check
 ```
 
 - 8 条带正负样例的冲突 smoke fixtures，在当前小型合成集上 binary precision / recall 均为 100%。
-- 33 项契约与工作流测试覆盖 5 问上限、模型伪造 evidence ID 拒绝、usage/成本归一化、失败 telemetry、服务端限流、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
+- 40 项契约与工作流测试覆盖证据归一化/去重、1 / 3 / 5 路由、模型伪造 evidence ID 拒绝、usage/成本归一化、失败 telemetry、服务端限流、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
 - 该结果只描述仓库内 smoke set，不代表开放域自然语言准确率；限制记录在 [Evaluation](docs/EVALUATION.md)。
 
 ## Deployment

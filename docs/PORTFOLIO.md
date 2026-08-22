@@ -57,7 +57,7 @@ flowchart LR
 | 业务风险 | 产品机制 | Agent 工程实现 |
 | --- | --- | --- |
 | 模型编造依据 | 每条 finding 必须引用已知证据 | JSON Schema、Zod、evidence ID allowlist |
-| 用户被大量问题打断 | 只问改变实现或验收的问题 | 信息增益排序、最多 5 问 |
+| 用户被大量问题打断 | 按材料复杂度调整澄清深度 | 信息增益排序、自适应 1 / 3 / 5 问 |
 | 模型不可用导致流程中断 | 确定性结果始终可用 | Demo baseline、Provider fallback、审计事件 |
 | 需求被新反馈静默覆盖 | 旧结论进入待复核状态 | `challenges` 边、`at-risk` 状态、人工关闭影响 |
 | 模型成本不可控 | 每次调用可观察、服务端限流 | usage、成本估算、延迟、request ID、并发/速率限制 |
