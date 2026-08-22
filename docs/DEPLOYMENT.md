@@ -34,6 +34,9 @@ Blueprint 默认配置：
 在 Render Environment 中填写：
 
 - `OPENAI_API_KEY`：OpenAI 服务端 API Key
+- `OPENAI_MODEL`：未分层时使用的默认模型
+- `OPENAI_MODEL_SMALL`：复杂材料使用的模型，可选，默认继承 `OPENAI_MODEL`
+- `OPENAI_MODEL_LARGE`：高风险材料使用的模型，可选，默认继承 `OPENAI_MODEL`
 - `OPENAI_INPUT_USD_PER_1M`：部署时输入 Token 单价
 - `OPENAI_CACHED_INPUT_USD_PER_1M`：部署时缓存输入 Token 单价
 - `OPENAI_OUTPUT_USD_PER_1M`：部署时输出 Token 单价

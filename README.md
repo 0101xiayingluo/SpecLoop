@@ -50,6 +50,8 @@ npm run preview
 ```powershell
 $env:OPENAI_API_KEY="your-key"
 $env:OPENAI_MODEL="gpt-5-mini"
+$env:OPENAI_MODEL_SMALL="gpt-5-mini"
+$env:OPENAI_MODEL_LARGE="<verified-quality-model-id>"
 $env:OPENAI_INPUT_USD_PER_1M="copy-current-provider-rate"
 $env:OPENAI_CACHED_INPUT_USD_PER_1M="copy-current-provider-rate"
 $env:OPENAI_OUTPUT_USD_PER_1M="copy-current-provider-rate"
@@ -61,7 +63,7 @@ npm run start:model
 
 服务端适配器使用 OpenAI [Responses API](https://platform.openai.com/docs/api-reference/responses) 的 JSON Schema 输出，并将响应 `usage` 记录为项目级 Agent Run。每次运行保存输入、缓存输入、输出、推理和总 Token，以及服务端/浏览器端延迟和 provider request ID。成本按服务端配置的每百万 Token 单价估算；未配置单价时界面显示 `Not priced`，不会显示误导性的零成本。
 
-调用设置 `store: false`。模型名可通过 `OPENAI_MODEL` 替换，价格应按部署时的官方报价写入环境变量，不在代码中硬编码。
+调用设置 `store: false`。`OPENAI_MODEL_SMALL` / `OPENAI_MODEL_LARGE` 分别承接复杂与高风险材料；未配置时统一回退到 `OPENAI_MODEL`。价格应按部署时的官方报价写入环境变量，不在代码中硬编码。
 
 ## Connect a deployed model backend
 

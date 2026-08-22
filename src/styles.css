@@ -576,6 +576,7 @@ h2 {
 }
 
 .title-input input,
+.title-input select,
 .control-group select,
 .inspector-grid select,
 .inspector-header input {
@@ -1968,6 +1969,8 @@ button.requirement-row.selected {
 }
 
 .quality-gates,
+.failure-pool,
+.evaluation-matrix,
 .evaluation-audit {
   margin-top: 24px;
   background: #fff;
@@ -1977,6 +1980,8 @@ button.requirement-row.selected {
 }
 
 .quality-gates .subsection-title,
+.failure-pool .subsection-title,
+.evaluation-matrix .subsection-title,
 .evaluation-audit .subsection-title {
   padding: 0 15px;
   background: #f7f8f6;
@@ -1995,6 +2000,43 @@ button.requirement-row.selected {
 .quality-row:last-child { border-bottom: 0; }
 .quality-row svg { color: #4f7a2e; }
 .quality-row:has(strong:last-child:not(:only-child)) strong { font-size: 8px; }
+
+.failure-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.failure-row:last-child { border-bottom: 0; }
+.failure-row strong,
+.failure-row span,
+.failure-row small { display: block; }
+.failure-row strong { color: #7f4520; font-size: 8px; text-transform: uppercase; }
+.failure-row span { margin-top: 4px; font-size: 10px; }
+.failure-row small { margin-top: 4px; color: #858e87; font-size: 8px; }
+.failure-actions { display: flex; gap: 6px; }
+
+.dimension-row {
+  display: grid;
+  grid-template-columns: 170px 100px minmax(0, 1fr) 58px;
+  align-items: center;
+  gap: 12px;
+  min-height: 45px;
+  padding: 7px 15px;
+  border-bottom: 1px solid var(--line);
+  font-size: 9px;
+}
+
+.dimension-row:last-child { border-bottom: 0; }
+.dimension-row small { color: #7d877f; }
+.dimension-status { padding: 3px 6px; border-radius: 4px; font-size: 8px; text-align: center; text-transform: uppercase; }
+.dimension-status.pass { color: #365b21; background: #e5f2d8; }
+.dimension-status.review { color: #8b3029; background: #f8dfdc; }
+.dimension-status.waiting { color: #6d5a31; background: #f5ecd7; }
 
 .audit-table {
   width: 100%;

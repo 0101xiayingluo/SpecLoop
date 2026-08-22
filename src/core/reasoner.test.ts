@@ -48,5 +48,14 @@ describe('demo reasoner', () => {
     expect(intakeRequirement && affectedIds.has(intakeRequirement.id)).toBe(true)
     expect(impacted.impacts.every((impact) => impact.severity === 'high')).toBe(true)
   })
-})
 
+  it('registers duplicate feedback without generating evidence-free impacts', () => {
+    const synthesized = synthesizeProject(answeredDemo())
+    const once = addFeedback(synthesized, 'New acceptance feedback', DEMO_FEEDBACK)
+    const twice = addFeedback(once, 'Repeated acceptance feedback', DEMO_FEEDBACK)
+
+    expect(twice.sources.at(-1)?.duplicateOf).toBe(once.sources.at(-1)?.id)
+    expect(twice.impacts).toHaveLength(once.impacts.length)
+    expect(twice.audit.at(-1)?.action).toBe('feedback.duplicate-skipped')
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveImpact, updateAcceptanceCriterion, updateRequirementDraft } from './projectActions'
+import { resolveImpact, reviewFailureCase, updateAcceptanceCriterion, updateRequirementDraft } from './projectActions'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './reasoner'
 import { DEMO_FEEDBACK, DEMO_SOURCE } from './sample'
 import { createProject } from './stateMachine'
@@ -60,6 +60,22 @@ describe('project actions', () => {
     expect(saved.criteria[0].then).toContain('同时更新')
     expect(saved.status).toBe('modified')
     expect(updated.audit.at(-1)?.action).toBe('requirement.draft.updated')
+    expect(updated.failureCases.at(-1)).toMatchObject({ dimension: 'human-correction', status: 'pending-review' })
+  })
+
+  it('requires human review before a correction becomes a regression asset', () => {
+    const project = synthesizedDemo()
+    const requirement = project.requirements[0]
+    const corrected = updateRequirementDraft(project, requirement.id, {
+      title: `${requirement.title} corrected`,
+      statement: requirement.statement,
+      criteria: requirement.criteria.map((criterion) => ({ id: criterion.id, given: criterion.given, when: criterion.when, then: criterion.then })),
+    })
+    const failure = corrected.failureCases.at(-1)!
+    const reviewed = reviewFailureCase(corrected, failure.id, 'accepted')
+
+    expect(reviewed.failureCases.at(-1)).toMatchObject({ status: 'accepted' })
+    expect(reviewed.audit.at(-1)?.action).toBe('failure-case.reviewed')
   })
 
   it('closes a reviewed impact and clears its affected node risk', () => {

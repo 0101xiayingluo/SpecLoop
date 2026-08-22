@@ -10,7 +10,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = resolve(root, 'dist')
 const port = Number(process.env.PORT || 8787)
 const host = process.env.HOST || '127.0.0.1'
-const model = process.env.OPENAI_MODEL || 'gpt-5-mini'
+const defaultModel = process.env.OPENAI_MODEL || 'gpt-5-mini'
+const smallModel = process.env.OPENAI_MODEL_SMALL || defaultModel
+const largeModel = process.env.OPENAI_MODEL_LARGE || defaultModel
 const allowedOrigins = (process.env.ALLOWED_ORIGIN || '').split(',').map((item) => item.trim()).filter(Boolean)
 const pricing = readPricing(process.env)
 const maxBodyBytes = 2 * 1024 * 1024
@@ -23,7 +25,7 @@ let activeModelRequests = 0
 const analysisSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['issues', 'questions'],
+  required: ['issues', 'questions', 'selfAssessment'],
   properties: {
     issues: {
       type: 'array',
@@ -70,6 +72,16 @@ const analysisSchema = {
         },
       },
     },
+    selfAssessment: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['confidence', 'reviewRecommended', 'unresolvedRisks'],
+      properties: {
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reviewRecommended: { type: 'boolean' },
+        unresolvedRisks: { type: 'array', maxItems: 6, items: { type: 'string' } },
+      },
+    },
   },
 }
 
@@ -77,7 +89,8 @@ const instructions = `You are SpecLoop's requirements clarification reasoner. An
 Identify contradictory statements, missing implementation or acceptance conditions, and explicitly uncertain assumptions.
 Every issue must cite one or more supplied evidence IDs exactly. Never invent an evidence ID.
 Propose only questions that can materially change implementation, scope, risk, or acceptance. Rank them with informationGain from 0 to 100.
-Do not exceed the requested maximum question count. Keep language consistent with the evidence.`
+Do not exceed the requested maximum question count. Keep language consistent with the evidence.
+Return a calibrated selfAssessment: confidence is your confidence that the proposed findings cover the material, reviewRecommended flags unresolved ambiguity, and unresolvedRisks lists what may still be missing. This self-assessment is advisory and never overrides SpecLoop's deterministic review policy.`
 
 function sendJson(response, statusCode, value) {
   const body = JSON.stringify(value)
@@ -136,6 +149,7 @@ async function reason(request, response) {
   const start = performance.now()
   const runId = `run-${Date.now().toString(36)}`
   const input = await readJson(request)
+  const selectedModel = input?.routing?.requestedTier === 'large' ? largeModel : smallModel
   let upstream
   try {
     upstream = await fetch('https://api.openai.com/v1/responses', {
@@ -145,7 +159,7 @@ async function reason(request, response) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
+        model: selectedModel,
         instructions,
         input: JSON.stringify(input),
         text: {
@@ -168,7 +182,7 @@ async function reason(request, response) {
       detail: detail.slice(0, 800),
       run: createAgentRun({
         id: runId,
-        model,
+        model: selectedModel,
         status: 'failed',
         startedAt,
         completedAt,
@@ -189,7 +203,7 @@ async function reason(request, response) {
       detail: detail.slice(0, 800),
       run: createAgentRun({
         id: runId,
-        model,
+        model: selectedModel,
         status: 'failed',
         startedAt,
         completedAt,
@@ -212,7 +226,7 @@ async function reason(request, response) {
       detail,
       run: createAgentRun({
         id: payload.id || runId,
-        model: payload.model || model,
+        model: payload.model || selectedModel,
         status: 'failed',
         startedAt,
         completedAt,
@@ -229,7 +243,7 @@ async function reason(request, response) {
     analysis,
     run: createAgentRun({
       id: payload.id || runId,
-      model: payload.model || model,
+      model: payload.model || selectedModel,
       status: 'succeeded',
       startedAt,
       completedAt,
@@ -286,7 +300,8 @@ createServer(async (request, response) => {
     if (request.method === 'GET' && request.url === '/api/health') {
       sendJson(response, 200, {
         available: Boolean(process.env.OPENAI_API_KEY),
-        model,
+        model: defaultModel,
+        models: { small: smallModel, large: largeModel },
         pricingConfigured: pricing.configured,
         guardrails: {
           originRestricted: allowedOrigins.length > 0,
@@ -336,5 +351,5 @@ createServer(async (request, response) => {
     sendJson(response, 500, { error: error instanceof Error ? error.message : 'Unexpected server error' })
   }
 }).listen(port, host, () => {
-  console.log(`SpecLoop model server: http://${host}:${port} (${model})`)
+  console.log(`SpecLoop model server: http://${host}:${port} (${smallModel} -> ${largeModel})`)
 })

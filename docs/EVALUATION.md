@@ -2,16 +2,24 @@
 
 ## What is measured
 
-- Conflict detection：是否找出明确相反的范围描述。
-- Question efficiency：正式问题是否始终不超过 5。
-- Trace coverage：需求与验收标准是否都链接原始证据。
+- Conflict precision / recall：是否找出明确相反的范围描述，同时控制误报。
+- Grounding integrity：模型是否只引用 evidence allowlist 中的原文片段。
+- Trace faithfulness：需求与验收标准是否都链接真实原始证据。
+- Question efficiency：正式问题是否服从按复杂度分配的 1 / 3 / 5 预算。
 - Change selectivity：新反馈是否挑战相关决策，同时不误伤无关决策。
-- Export integrity：三种 Markdown 输出是否保留验收和证据引用。
-- Agent observability：Provider usage、成本估算、延迟、失败状态和 request ID 是否完整进入项目记录。
+- Latency / cost telemetry：Provider usage、成本估算、延迟、失败状态和 request ID 是否完整进入项目记录。
+
+导出完整性继续作为产品契约测试，不与模型质量指标混成一个总分。界面将合成 fixture 结果、当前项目质量门和真实 Provider telemetry 分开呈现；没有真实调用时显示 `waiting`，不使用占位数值。
+
+## Evidence and failure-case pipeline
+
+材料进入系统时记录业务来源（用户访谈、会议、聊天、产品反馈、GitHub Issue、项目文档或行为日志）和采集方式（粘贴、上传、反馈流）。pipeline 统一完成文本清洗、句子切分、内容指纹去重和 source/line 绑定，重复材料保留登记但不重复进入推理。
+
+Provider 失败、grounding/schema 拒绝和用户对生成需求的实质改写会成为 `pending-review` 样本。只有人工接受后才进入 regression asset 池；原始反馈不会自动训练或修改线上策略，避免把噪声、恶意输入和错误修订变成训练资产。
 
 ## Current deterministic suite
 
-`npm test` 覆盖冲突识别、缺失项问题模板、5 问上限、确定性排序、100% 来源覆盖、变更选择性、人工影响复核和三种导出格式。
+`npm test` 覆盖证据归一化/去重、来源元数据、冲突识别、复杂度路由、自适应问题预算、确定性排序、100% 来源覆盖、变更选择性、人工失败样本复核和三种导出格式。
 
 `evals/cases.json` 包含 8 条正负 smoke fixtures：4 条明确冲突和 4 条同范围一致表达。当前规则在这个小型合成集上的 binary precision / recall 均为 100%。测试会直接计算这两个指标，防止修改规则后只报命中率而掩盖误报。
 

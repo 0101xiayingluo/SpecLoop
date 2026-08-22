@@ -1,6 +1,8 @@
 export type WorkflowStage = 'intake' | 'clarify' | 'draft' | 'trace' | 'review'
 
 export type SourceKind = 'paste' | 'text' | 'markdown' | 'json' | 'pdf' | 'docx' | 'feedback'
+export type EvidenceProvenance = 'user-interview' | 'meeting' | 'chat' | 'product-feedback' | 'github-issue' | 'project-document' | 'behavior-log' | 'other'
+export type IngestionMethod = 'paste' | 'upload' | 'feedback-flow'
 export type SignalKind = 'fact' | 'constraint' | 'conflict' | 'assumption' | 'feedback'
 export type IssueKind = 'conflict' | 'missing' | 'assumption'
 export type Severity = 'high' | 'medium' | 'low'
@@ -14,6 +16,38 @@ export interface SourceMaterial {
   kind: SourceKind
   content: string
   createdAt: string
+  provenance: EvidenceProvenance
+  ingestionMethod: IngestionMethod
+  fingerprint: string
+  duplicateOf?: string
+}
+
+export interface AnalysisPlan {
+  complexity: 'simple' | 'complex' | 'high-risk'
+  route: 'deterministic' | 'model-assisted'
+  questionBudget: number
+  reviewRequired: boolean
+  score: number
+  reasons: string[]
+  decidedAt: string
+}
+
+export interface ModelSelfAssessment {
+  confidence: number
+  reviewRecommended: boolean
+  unresolvedRisks: string[]
+}
+
+export interface FailureCase {
+  id: string
+  createdAt: string
+  status: 'pending-review' | 'accepted' | 'rejected'
+  dimension: 'grounding' | 'provider' | 'schema' | 'human-correction'
+  summary: string
+  evidenceIds: string[]
+  observed: string
+  expected: string
+  reviewedAt?: string
 }
 
 export interface EvidenceFragment {
@@ -170,6 +204,9 @@ export interface SpecProject {
   preferences: WorkingPreferences
   impacts: ImpactFinding[]
   agentRuns: AgentRun[]
+  analysisPlan?: AnalysisPlan
+  modelSelfAssessment?: ModelSelfAssessment
+  failureCases: FailureCase[]
   audit: AuditEvent[]
 }
 

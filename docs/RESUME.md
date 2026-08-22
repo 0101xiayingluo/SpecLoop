@@ -6,13 +6,9 @@
 
 ## Expanded Chinese
 
-- 设计单 Agent 状态机，将会议、聊天和用户反馈转成 `证据 -> 问题 -> 决策 -> 需求 -> 验收标准` 可审计图谱。
-- 实现冲突/缺失/假设检测和最多 5 个问题的信息增益排序，使用人工审批门防止模型在未确认假设上继续生成。
-- 建立需求与 Given/When/Then 验收标准的 100% 来源覆盖校验，并支持新反馈对旧决策的 `at-risk` 影响分析。
-- 设计确定性 Demo Reasoner 与可选 Responses API 双模式：使用 JSON Schema、Zod 和 evidence ID 白名单约束模型输出，Provider 故障时自动回退并保留审计事件。
-- 为真实模型调用建立 Agent Run 观测：记录输入/缓存/输出/推理 Token、成本估算、服务端与端到端延迟、状态和 request ID。
-- 为公共模型端点加入来源校验、每 IP 限流、并发上限和超时控制，并提供 Docker/Render 与 GitHub Pages 分离部署。
-- 构建 8 条正负冲突 smoke fixtures、33 项自动化测试、GitHub Actions CI/Pages 部署，以及 PRD/用户故事/GitHub Issue 导出。
+- 设计证据驱动的需求澄清 Agent，将访谈、会议、聊天、反馈和 GitHub Issue 经清洗/切分/去重 pipeline 转成 `证据 -> 问题 -> 决策 -> 需求 -> 验收标准` 可审计图谱。
+- 建立复杂度路由和自适应 1 / 3 / 5 问策略，按简单/复杂/高风险场景选择确定性、小/大模型路径；结合 JSON Schema、Zod、evidence allowlist、人工审批和确定性回退控制幻觉与越权。
+- 构建覆盖冲突 precision/recall、grounding、trace faithfulness、问题效率、变更选择性及 Token/成本/延迟的六维评测；失败与人工修订经审核回流为回归样本，并交付 PRD/用户故事/GitHub Issue 导出及 CI/Pages/Render 链路。
 
 ## Metrics that can be defended
 
