@@ -18,7 +18,7 @@
 
 ## 1:05-1:30 · Agent control plane
 
-打开 Evaluation，展示证据采集 pipeline、自适应路由、Grounding guard、人类门禁、失败样本池和六维评测，以及真实模型调用产生的 Token/成本/延迟。明确没有真实调用时显示 `waiting`，不展示虚构数字。
+打开 Evaluation，展示证据采集 pipeline、12 条路由标注集的三分类混淆矩阵、信息增益早停、Grounding guard、人类门禁、失败样本池和六维评测，以及真实模型调用产生的 Token/成本/延迟。明确没有真实调用时显示 `waiting`，不展示虚构数字。
 
 # Three-minute deep dive
 
@@ -28,7 +28,7 @@
 
 ## 0:30-1:10 · Clarification
 
-展示左侧 conflict / missing / assumption 分类，以及一次只出现一个问题。选择推荐选项并说明：系统按复杂度分配 1 / 3 / 5 问，优先解决会改变实现和验收的未知项。
+展示左侧 conflict / missing / assumption 分类，以及一次只出现一个问题。选择推荐选项并说明：系统按复杂度分配 1 / 3 / 5 问上限，阻断项解决后可以按信息增益早停。
 
 ## 1:10-1:45 · Requirements
 
@@ -44,7 +44,7 @@
 
 ## 2:50-3:00 · Evaluation and export
 
-打开 Evaluation 展示六维质量门、失败样本审核和审计日志，最后导出 PRD。强调 8 条 fixture 只是可复现 smoke set，而非开放域准确率声明。
+打开 Evaluation 展示六维质量门、路由混淆矩阵、失败样本审核和审计日志，指出 `upload-failure-risk-floor-regression` 如何让旧阈值策略 replay 得到 11/12，并被 `risk-floor-v2` 修复为 12/12；最后导出 PRD。强调 20 条语言 fixtures 只是可复现 smoke/regression set，而非开放域准确率声明。
 
 ## Optional model mode
 

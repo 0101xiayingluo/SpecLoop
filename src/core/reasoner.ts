@@ -263,6 +263,7 @@ export function analyzeMaterial(
 export function answerQuestion(project: SpecProject, questionId: string, optionId: string, customAnswer?: string): SpecProject {
   const question = project.questions.find((item) => item.id === questionId)
   if (!question) throw new Error(`Unknown question: ${questionId}`)
+  if (question.skippedAt) return project
   const option = question.options.find((item) => item.id === optionId)
   const answer = customAnswer?.trim() || option?.value
   const answerLabel = customAnswer?.trim() || option?.label
@@ -279,16 +280,50 @@ export function answerQuestion(project: SpecProject, questionId: string, optionI
     status: 'accepted',
     revision: 1,
   }
-  const questions = project.questions.map((item) =>
+  let questions = project.questions.map((item) =>
     item.id === questionId ? { ...item, answer, answerLabel, answeredAt } : item,
   )
-  const firstUnanswered = questions.findIndex((item) => !item.answer)
+  const issues = project.issues.map((issue) => affectedIssueIds.has(issue.id) ? { ...issue, resolved: true } : issue)
+  const remaining = questions.filter((item) => !item.answer && !item.skippedAt)
+  const hasBlockingIssue = issues.some((issue) => !issue.resolved && (issue.kind === 'conflict' || issue.severity === 'high'))
+  const stopThreshold = project.analysisPlan?.earlyStop?.minInformationGain ?? 7
+  const shouldStopEarly = remaining.length > 0
+    && !hasBlockingIssue
+    && Math.max(...remaining.map((item) => item.informationGain)) < stopThreshold
+  let analysisPlan = project.analysisPlan
+  let earlyStopAudit: SpecProject['audit'][number] | undefined
+  if (shouldStopEarly) {
+    const skippedQuestionIds = remaining.map((item) => item.id)
+    const reason = `No unresolved conflict/high-severity issue; remaining information gain is below ${stopThreshold}.`
+    questions = questions.map((item) => skippedQuestionIds.includes(item.id) ? {
+      ...item,
+      skippedAt: answeredAt,
+      skipReason: reason,
+    } : item)
+    analysisPlan = analysisPlan ? {
+      ...analysisPlan,
+      earlyStop: {
+        minInformationGain: analysisPlan.earlyStop?.minInformationGain ?? 7,
+        triggered: true,
+        skippedQuestionIds,
+        reason,
+      },
+    } : analysisPlan
+    earlyStopAudit = {
+      id: stableId('audit', `early-stop:${project.id}:${answeredAt}`),
+      at: answeredAt,
+      action: 'clarification.early-stopped',
+      detail: `${skippedQuestionIds.length} low-information question(s) skipped: ${reason}`,
+    }
+  }
+  const firstUnresolved = questions.findIndex((item) => !item.answer && !item.skippedAt)
   return {
     ...project,
     questions,
-    issues: project.issues.map((issue) => affectedIssueIds.has(issue.id) ? { ...issue, resolved: true } : issue),
+    issues,
+    analysisPlan,
     decisions: [...project.decisions.filter((item) => item.questionId !== question.id), decision],
-    currentQuestionIndex: firstUnanswered === -1 ? questions.length : firstUnanswered,
+    currentQuestionIndex: firstUnresolved === -1 ? questions.length : firstUnresolved,
     updatedAt: answeredAt,
     audit: [
       ...project.audit,
@@ -298,6 +333,7 @@ export function answerQuestion(project: SpecProject, questionId: string, optionI
         action: 'clarification.answered',
         detail: `${question.prompt} -> ${answerLabel}`,
       },
+      ...(earlyStopAudit ? [earlyStopAudit] : []),
     ],
   }
 }
@@ -393,7 +429,7 @@ function makeEdge(from: string, to: string, relation: TraceEdge['relation']): Tr
 
 export function synthesizeProject(project: SpecProject): SpecProject {
   if (project.stage !== 'clarify') throw new Error('Requirements can only be synthesized after clarification')
-  if (project.questions.some((question) => !question.answer)) throw new Error('All queued clarification questions must be answered')
+  if (project.questions.some((question) => !question.answer && !question.skippedAt)) throw new Error('All queued clarification questions must be answered or stopped by policy')
 
   const allText = project.evidence.map((item) => item.quote).join('\n')
   const problems = buildProblems(project.issues, project.evidence)

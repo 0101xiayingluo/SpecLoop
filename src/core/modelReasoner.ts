@@ -134,7 +134,7 @@ function normalizeModelAnalysis(project: SpecProject, payload: unknown): Pick<Sp
     evidence: project.evidence.map((item) => ({ ...item, signal: issueSignal.get(item.id) ?? item.signal })),
     issues: [...issuesByKey.values()],
     questions,
-    modelSelfAssessment: analysis.selfAssessment,
+    modelSelfAssessment: { ...analysis.selfAssessment, calibrationStatus: 'uncalibrated' },
   }
 }
 
@@ -155,8 +155,9 @@ export async function enhanceAnalysisWithModel(
         maxQuestions: Math.min(MAX_QUESTIONS, project.analysisPlan?.questionBudget ?? MAX_QUESTIONS),
         routing: {
           complexity: project.analysisPlan?.complexity ?? 'complex',
-          requestedTier: project.analysisPlan?.complexity === 'high-risk' ? 'large' : 'small',
+          requestedTier: project.analysisPlan?.requestedTier ?? (project.analysisPlan?.complexity === 'high-risk' ? 'large' : 'small'),
           reviewRequired: project.analysisPlan?.reviewRequired ?? true,
+          policyVersion: project.analysisPlan?.policyVersion ?? 'legacy',
         },
       }),
     })
@@ -234,6 +235,14 @@ export async function enhanceAnalysisWithModel(
 export function recordModelFallback(project: SpecProject, reason: string, run?: AgentRun): SpecProject {
   const at = nowIso()
   const dimension = /evidence|ground/i.test(reason) ? 'grounding' as const : /schema|valid/i.test(reason) ? 'schema' as const : 'provider' as const
+  const rootCause = /unknown evidence/i.test(reason)
+    ? 'unknown-evidence' as const
+    : /429|rate.?limit/i.test(reason)
+      ? 'rate-limit' as const
+      : /schema|valid/i.test(reason)
+        ? 'schema-invalid' as const
+        : /evidence|ground/i.test(reason) ? 'grounding-rejection' as const : 'provider-unavailable' as const
+  const fingerprint = stableId('failure-fingerprint', `${dimension}:${rootCause}:${reason.toLocaleLowerCase().replace(/\d+/g, '#').slice(0, 240)}`)
   return {
     ...project,
     agentRuns: run ? [...project.agentRuns, run] : project.agentRuns,
@@ -242,6 +251,10 @@ export function recordModelFallback(project: SpecProject, reason: string, run?: 
       createdAt: at,
       status: 'pending-review',
       dimension,
+      workflowStage: project.stage,
+      rootCause,
+      fingerprint,
+      ...(run ? { relatedRunId: run.id } : {}),
       summary: 'Model path failed and deterministic baseline was retained',
       evidenceIds: project.evidence.map((item) => item.id),
       observed: reason.slice(0, 800),

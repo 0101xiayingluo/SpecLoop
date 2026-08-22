@@ -71,6 +71,10 @@ describe('model reasoner boundary', () => {
       estimatedCostUsd: 0.00125,
     })
     expect(enhanced.agentRuns[0].clientLatencyMs).toBeGreaterThanOrEqual(0)
+    expect(enhanced.modelSelfAssessment).toMatchObject({ confidence: 0.72, calibrationStatus: 'uncalibrated' })
+    const requestCall = request.mock.calls[0] as unknown as [RequestInfo | URL, RequestInit]
+    const requestBody = JSON.parse(String(requestCall[1].body)) as { routing: { requestedTier: string; policyVersion: string } }
+    expect(requestBody.routing).toMatchObject({ requestedTier: 'small', policyVersion: 'risk-floor-v2' })
     expect(enhanced.audit.at(-1)?.action).toBe('model.analysis.completed')
   })
 

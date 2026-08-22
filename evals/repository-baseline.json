@@ -1,0 +1,60 @@
+{
+  "measuredAt": "2026-08-22",
+  "scope": "Reproducible synthetic fixtures and local repository checks; not production traffic",
+  "metrics": [
+    {
+      "key": "routing-accuracy",
+      "label": "Three-class routing accuracy",
+      "baseline": "91.7% (11/12)",
+      "current": "100% (12/12)",
+      "releaseGate": ">= 90% and no high-risk recall regression",
+      "evidence": "Legacy threshold replay and risk-floor-v2 on 12 labeled synthetic fixtures",
+      "status": "pass"
+    },
+    {
+      "key": "conflict-quality",
+      "label": "Conflict precision / recall",
+      "baseline": "Not recorded before fixture suite",
+      "current": "100% / 100%",
+      "releaseGate": ">= 90% / >= 90%",
+      "evidence": "8 labeled synthetic positive/negative fixtures",
+      "status": "pass"
+    },
+    {
+      "key": "trace-faithfulness",
+      "label": "Demo trace faithfulness",
+      "baseline": "Not recorded",
+      "current": "100%",
+      "releaseGate": "100%",
+      "evidence": "Every demo requirement and acceptance criterion links known evidence",
+      "status": "pass"
+    },
+    {
+      "key": "regression-stability",
+      "label": "Regression stability",
+      "baseline": "Not recorded",
+      "current": "5/5 runs; 240/240 executions passed",
+      "releaseGate": "0 failed or flaky executions",
+      "evidence": "Five independent local Vitest runs on 2026-08-22",
+      "status": "pass"
+    },
+    {
+      "key": "self-assessment-recall",
+      "label": "Self-assessment risk recall",
+      "baseline": "Not measured",
+      "current": "Waiting for labeled model runs",
+      "releaseGate": ">= 90% recall before self-score affects routing",
+      "evidence": "Current self-score is stored as uncalibrated and cannot override hard gates",
+      "status": "waiting"
+    },
+    {
+      "key": "runtime-economics",
+      "label": "P95 latency / accepted-package cost",
+      "baseline": "Not measured",
+      "current": "Real AgentRun telemetry only",
+      "releaseGate": "P95 < 15 s; cost reported before setting optimization target",
+      "evidence": "Requires deployed backend and controlled live model runs",
+      "status": "waiting"
+    }
+  ]
+}

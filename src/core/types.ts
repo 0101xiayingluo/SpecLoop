@@ -23,11 +23,26 @@ export interface SourceMaterial {
 }
 
 export interface AnalysisPlan {
+  policyVersion: string
   complexity: 'simple' | 'complex' | 'high-risk'
   route: 'deterministic' | 'model-assisted'
+  requestedTier: 'none' | 'small' | 'large'
   questionBudget: number
   reviewRequired: boolean
+  reviewTriggers: Array<'high-severity' | 'high-risk-route'>
   score: number
+  signals: {
+    evidenceCount: number
+    conflicts: number
+    highSeverity: number
+    assumptions: number
+  }
+  earlyStop: {
+    minInformationGain: number
+    triggered: boolean
+    skippedQuestionIds: string[]
+    reason?: string
+  }
   reasons: string[]
   decidedAt: string
 }
@@ -36,6 +51,7 @@ export interface ModelSelfAssessment {
   confidence: number
   reviewRecommended: boolean
   unresolvedRisks: string[]
+  calibrationStatus: 'uncalibrated'
 }
 
 export interface FailureCase {
@@ -43,6 +59,10 @@ export interface FailureCase {
   createdAt: string
   status: 'pending-review' | 'accepted' | 'rejected'
   dimension: 'grounding' | 'provider' | 'schema' | 'human-correction'
+  workflowStage: WorkflowStage
+  rootCause: 'provider-unavailable' | 'rate-limit' | 'schema-invalid' | 'unknown-evidence' | 'grounding-rejection' | 'human-correction'
+  fingerprint: string
+  relatedRunId?: string
   summary: string
   evidenceIds: string[]
   observed: string
@@ -86,6 +106,8 @@ export interface ClarificationQuestion {
   answer?: string
   answerLabel?: string
   answeredAt?: string
+  skippedAt?: string
+  skipReason?: string
 }
 
 export interface UserProblem {

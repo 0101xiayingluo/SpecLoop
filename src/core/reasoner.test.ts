@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { addFeedback, analyzeMaterial, answerQuestion, synthesizeProject } from './reasoner'
 import { DEMO_FEEDBACK, DEMO_SOURCE } from './sample'
-import { createProject } from './stateMachine'
+import { createProject, transition } from './stateMachine'
 import { traceCoverage } from './trace'
 
 function answeredDemo() {
@@ -33,6 +33,19 @@ describe('demo reasoner', () => {
     expect(project.requirements.every((requirement) => requirement.evidenceIds.length > 0)).toBe(true)
     expect(project.requirements.every((requirement) => requirement.criteria.every((criterion) => criterion.evidenceIds.length > 0))).toBe(true)
     expect(coverage.percentage).toBe(100)
+
+    const brokenEvidenceId = {
+      ...project,
+      requirements: project.requirements.map((requirement, index) => index === 0 ? {
+        ...requirement,
+        criteria: requirement.criteria.map((criterion, criterionIndex) => criterionIndex === 0
+          ? { ...criterion, evidenceIds: ['ev-not-in-project'] }
+          : criterion),
+      } : requirement),
+    }
+    expect(traceCoverage(brokenEvidenceId).percentage).toBeLessThan(100)
+    const brokenTrace = transition(brokenEvidenceId, 'trace')
+    expect(() => transition(brokenTrace, 'review')).toThrow('Invalid workflow transition')
   })
 
   it('flags only feedback-related decisions and requirements', () => {

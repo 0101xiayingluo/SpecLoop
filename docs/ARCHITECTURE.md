@@ -20,6 +20,8 @@ intake -> clarify -> draft -> trace -> review
 
 状态守卫阻止没有证据进入澄清、未答完问题生成需求、以及没有来源的产物进入评审。
 
+MVP 没有多 Agent 通信。所有可恢复状态都在 `SpecProject`：`stage` 控制流程，`analysisPlan` 保存路由信号和策略版本，`questions` 保存回答或早停结果，`failureCases` 保存待审核 bad case，`agentRuns` 保存真实模型运行指标，`audit` 保存状态变化。这样能直接回答每一步“谁写了什么”，而不是依赖不可回放的 Agent 对话。
+
 ## Domain graph
 
 核心节点为 `EvidenceFragment`、`UserProblem`、`ProductDecision`、`RequirementItem` 和 `AcceptanceCriterion`。关系包括 `reveals`、`supports`、`defines`、`verifies` 和 `challenges`。
@@ -32,6 +34,28 @@ intake -> clarify -> draft -> trace -> review
 - 模型不能直接写 UI、需求或状态机；它只能替换分析 findings 和澄清问题候选。
 - 模型服务失败时，确定性结果保留，并记录 `model.analysis.fallback` 审计事件。
 - 每次 Provider 尝试生成 `AgentRun`：记录真实 usage、服务端与浏览器端延迟、模型、状态、request ID 和可配置价格下的成本估算。
+
+## Routing, early stop, and review fields
+
+`AnalysisPlan` 使用 `risk-floor-v2`，保存 `signals.{evidenceCount,conflicts,highSeverity,assumptions}`、`score`、`complexity`、`requestedTier`、`reviewTriggers` 和 `earlyStop`。
+
+```text
+score = 3 × conflicts + 2 × highSeverity + assumptions + 2(if evidenceCount >= 12)
+high-risk = score >= 10 OR conflicts >= 2 OR highSeverity >= 3
+complex   = score >= 5 OR highSeverity >= 1
+simple    = otherwise
+```
+
+混淆矩阵、旧策略 replay 与发布门槛见 `docs/EVALUATION.md`。
+
+- simple：`requestedTier=none`，1 问上限，走 deterministic baseline。
+- complex：`requestedTier=small`，3 问上限；只要存在 high-severity finding 就触发人工复核。
+- high-risk：`requestedTier=large`，5 问上限并强制人工复核。
+- 每轮回答后，若已无未解决 conflict/high-severity finding，且剩余最高 `informationGain < 7`，记录 `skippedAt`、`skipReason` 和 `clarification.early-stopped`。
+
+`ModelSelfAssessment.calibrationStatus` 固定为 `uncalibrated`，直到有 held-out 标注集验证校准度；模型自信度不能覆盖任何确定性 review trigger。
+
+`src/core/modelPolicy.ts` 将模型能力边界编码为执行模式：simple 为 `deterministic`；complex 在 Provider、Schema 或 grounding/trace 硬门失败时为 `deterministic-review`；high-risk 在任一硬门失败时为 `manual-review`，全部通过时也只能是 `model-assisted-review`。模型降价只改变 `OPENAI_MODEL_SMALL/LARGE` 的映射，不自动改变权限边界。
 
 ```text
 material -> deterministic baseline -> optional model proposal
@@ -50,6 +74,10 @@ browser request -> Node timer -> Responses API
                          +-> server latency
 browser response -> client latency -> AgentRun -> local project + Evaluation
 ```
+
+`FailureCase` 通过 `workflowStage`、`rootCause`、`fingerprint`、`relatedRunId`、`evidenceIds`、`observed` 和 `expected` 定位 bad case。`relatedRunId` 可关联模型、request ID、Token、成本和延迟；人工接受前状态保持 `pending-review`。
+
+`deterministic-review` 表示保留确定性 findings 供人确认，不把失败的模型提案写入项目；`manual-review` 表示高风险硬门失败后阻断自动推进，只向审核者展示证据索引和失败原因。两者都不是“静默 fallback”。
 
 远程部署时，Node 服务使用 `HOST=0.0.0.0`，`VITE_AGENT_API_URL` 指向该服务，`ALLOWED_ORIGIN` 只允许指定前端源；本地同源运行不需要 CORS。
 

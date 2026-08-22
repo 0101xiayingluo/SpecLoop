@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import cases from '../../evals/cases.json'
+import routingCases from '../../evals/routing-cases.json'
 import { analyzeMaterial } from './reasoner'
 import { createProject } from './stateMachine'
-import { conflictMetrics, evaluateDimensions } from './evaluation'
+import { changeSelectivityMetrics, conflictMetrics, evaluateDimensions, routingMetrics, type RoutingFixture } from './evaluation'
 
 describe('conflict evaluation fixtures', () => {
   for (const fixture of cases) {
@@ -33,5 +34,28 @@ describe('conflict evaluation fixtures', () => {
       'conflict-quality', 'grounding', 'trace-faithfulness', 'question-efficiency', 'change-selectivity', 'telemetry',
     ])
     expect(dimensions.find((item) => item.key === 'telemetry')).toMatchObject({ status: 'waiting', result: 'Awaiting live run' })
+  })
+
+  it('reports the labeled three-class routing confusion matrix', () => {
+    const result = routingMetrics(routingCases as RoutingFixture[])
+
+    expect(result).toMatchObject({ accuracy: 1, legacyAccuracy: 11 / 12, correct: 12, legacyCorrect: 11, count: 12 })
+    expect(result.matrix.simple.simple).toBe(4)
+    expect(result.matrix.complex.complex).toBe(4)
+    expect(result.matrix['high-risk']['high-risk']).toBe(4)
+  })
+
+  it('keeps the high-severity risk-floor misclassification fixed', () => {
+    const fixture = routingCases.find((item) => item.id === 'upload-failure-risk-floor-regression')
+    expect(fixture).toBeDefined()
+    const result = routingMetrics([fixture as RoutingFixture])
+
+    expect(result.predictions[0]).toMatchObject({ legacyPredicted: 'simple', predicted: 'complex', pass: true })
+  })
+
+  it('calculates change selectivity from labeled expected and predicted node sets', () => {
+    const metrics = changeSelectivityMetrics(['requirement:intake'], ['requirement:intake'], ['requirement:intake', 'decision:authority'])
+
+    expect(metrics).toMatchObject({ precision: 1, recall: 1, collateralRate: 0, truePositive: 1, trueNegative: 1 })
   })
 })

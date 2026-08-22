@@ -10,12 +10,12 @@ SpecLoop 是一个证据驱动的需求澄清与验收 Agent。它把会议记�
 
 1. 粘贴材料，或上传 TXT、Markdown、JSON、PDF、DOCX。
 2. 查看冲突、缺失条件和未经验证的假设。
-3. 按材料复杂度逐个回答 1 / 3 / 5 个高信息增益问题。
+3. 按材料复杂度进入 1 / 3 / 5 问上限，并在阻断风险解决后自动早停。
 4. 编辑需求、优先级和 Given / When / Then 验收标准。
 5. 在交互图中从验收标准回溯到原文和行号。
 6. 添加新反馈，复核被标为 `at-risk` 的决策和需求。
 7. 导出带证据引用的 PRD、用户故事或 GitHub Issue Markdown。
-8. 在 Evaluation 查看真实模型调用的 Token、估算成本、延迟、状态和 request ID。
+8. 在 Evaluation 查看三分类路由混淆矩阵、早停效率，以及真实模型调用的 Token、估算成本、延迟、状态和 request ID。
 9. 打开 `Guided demo` 和 `Case study`，查看可复现演示与 AI 产品作品集。
 
 ## Architecture
@@ -85,7 +85,9 @@ npm run check
 ```
 
 - 8 条带正负样例的冲突 smoke fixtures，在当前小型合成集上 binary precision / recall 均为 100%。
-- 40 项契约与工作流测试覆盖证据归一化/去重、1 / 3 / 5 路由、模型伪造 evidence ID 拒绝、usage/成本归一化、失败 telemetry、服务端限流、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
+- 48 项契约与工作流测试覆盖证据归一化/去重、`risk-floor-v2` 三级路由、模型能力降级、信息增益早停、模型伪造 evidence ID 拒绝、usage/成本归一化、失败 telemetry、服务端限流、100% 追踪覆盖、选择性变更影响、人工复核闭环和三种导出格式。
+- 12 条 simple / complex / high-risk 合成路由 fixtures 当前为 12/12；Evaluation 展示 3 × 3 混淆矩阵，并固化一个旧策略的 high-severity omission 误判 case。
+- 5 次独立本地回归运行共 240/240 次测试执行通过，未观察到 flaky case；该结论仅适用于本次本地重复运行。
 - 该结果只描述仓库内 smoke set，不代表开放域自然语言准确率；限制记录在 [Evaluation](docs/EVALUATION.md)。
 
 ## Deployment
@@ -98,7 +100,7 @@ npm run check
 - `src/components/`：材料、澄清、需求、追踪、评审和评测界面。
 - `server/`：服务器端 Responses API 适配层和生产静态服务。
 - `evals/`：带正负样例的行为评测数据。
-- `docs/`：PRD、架构、调研、评测、演示脚本与简历材料。
+- `docs/`：PRD、架构、证据政策、调研、评测、商业假设与演示脚本。
 
 ## MVP boundaries
 
@@ -109,12 +111,15 @@ npm run check
 - [PRD](docs/PRD.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evaluation](docs/EVALUATION.md)
+- [Evidence policy](docs/EVIDENCE_POLICY.md)
 - [Product case study](docs/CASE_STUDY.md)
 - [Portfolio](docs/PORTFOLIO.md)
+- [Model capability policy](docs/MODEL_POLICY.md)
+- [Model behavior and failure cases](docs/MODEL_BEHAVIOR.md)
+- [Business hypothesis and north star](docs/BUSINESS_CASE.md)
 - [Deployment guide](docs/DEPLOYMENT.md)
 - [Three-minute demo](docs/DEMO.md)
 - [Open-source research](docs/OPEN_SOURCE_RESEARCH.md)
-- [Resume notes](docs/RESUME.md)
 
 ## License
 
