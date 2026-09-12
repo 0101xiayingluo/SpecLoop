@@ -2,7 +2,7 @@
 
 ## Runtime
 
-SpecLoop MVP 的产品界面是 React/TypeScript 应用，项目数据默认保存在 `localStorage`。领域层不依赖 React，可独立测试。可选 Node 服务将 OpenAI Responses API 隔离在服务端，浏览器从不接触 API Key。
+SpecLoop MVP 的产品界面是 React/TypeScript 应用，项目数据默认保存在 `localStorage`。领域层不依赖 React，可独立测试。Python FastAPI Agent runtime 将 OpenAI Responses API 隔离在服务端，浏览器从不接触 API Key。
 
 ## Single-agent state machine
 
@@ -29,7 +29,10 @@ MVP 没有多 Agent 通信。所有可恢复状态都在 `SpecProject`：`stage`
 ## Reasoner boundary
 
 - `src/core/reasoner.ts` 提供确定性 Demo Reasoner，保证无密钥演示和回归可复现。
-- `server/agent-server.mjs` 调用 Responses API，并使用 JSON Schema 限制模型输出形状。
+- `specloop_agent/provider.py` 调用 Responses API，并使用 Pydantic JSON Schema 限制模型输出形状。
+- `specloop_agent/orchestrator.py` 编排 validate -> route -> proposal -> guard -> review-gate 五步 Agent graph。
+- `specloop_agent/guards.py` 执行 evidence ID allowlist、问题关联和问题预算校验。
+- `specloop_agent/metrics.py` 归一化 Provider usage 并按部署价格估算成本。
 - `src/core/modelReasoner.ts` 再次执行 Zod 校验、证据 ID 白名单和问题数量截断。
 - 模型不能直接写 UI、需求或状态机；它只能替换分析 findings 和澄清问题候选。
 - 模型服务失败时，确定性结果保留，并记录 `model.analysis.fallback` 审计事件。
@@ -65,10 +68,10 @@ material -> deterministic baseline -> optional model proposal
 
 ## Agent observability
 
-`server/agent-metrics.mjs` 将 Responses API 的 `input_tokens`、缓存输入、`output_tokens`、推理 Token 和总 Token 归一化。成本使用三项服务端环境变量计算，未配置价格时返回 `null`。浏览器只接收运行指标，不接收密钥或价格配置来源之外的服务端环境信息。
+`specloop_agent/metrics.py` 将 Responses API 的 `input_tokens`、缓存输入、`output_tokens`、推理 Token 和总 Token 归一化。成本使用三项服务端环境变量计算，未配置价格时返回 `null`。浏览器只接收运行指标，不接收密钥或价格配置来源之外的服务端环境信息。
 
 ```text
-browser request -> Node timer -> Responses API
+browser request -> FastAPI timer -> Responses API
                          |            |
                          |            +-> usage + request id
                          +-> server latency
@@ -79,7 +82,7 @@ browser response -> client latency -> AgentRun -> local project + Evaluation
 
 `deterministic-review` 表示保留确定性 findings 供人确认，不把失败的模型提案写入项目；`manual-review` 表示高风险硬门失败后阻断自动推进，只向审核者展示证据索引和失败原因。两者都不是“静默 fallback”。
 
-远程部署时，Node 服务使用 `HOST=0.0.0.0`，`VITE_AGENT_API_URL` 指向该服务，`ALLOWED_ORIGIN` 只允许指定前端源；本地同源运行不需要 CORS。
+远程部署时，Python 服务使用 `HOST=0.0.0.0`，`VITE_AGENT_API_URL` 指向该服务，`ALLOWED_ORIGIN` 只允许指定前端源；本地同源运行不需要 CORS。
 
 公共演示部署还在模型调用前执行四项服务端保护：Origin 校验、固定窗口每 IP 限流、全局并发上限和 Provider 超时。它们降低作品集演示的滥用和成本风险，但不替代生产系统的用户身份、持久化配额与预算告警。
 
@@ -95,7 +98,7 @@ browser response -> client latency -> AgentRun -> local project + Evaluation
 - 本地项目存储键：`specloop.project.v1`。
 - 默认不向网络发送材料。
 - 只有用户显式选择 Model 模式时，材料证据才发送到本地 `/api/reason` 服务。
-- `OPENAI_API_KEY` 仅由 Node 进程读取，不写入浏览器存储或前端构建。
+- `OPENAI_API_KEY` 仅由 Python 进程读取，不写入浏览器存储或前端构建。
 - 模型请求使用 `store: false`；项目仍在本地持久化 Agent Run 指标和审计事件。
 - PDF 与 DOCX 解析器按需加载，不增加首屏主包负担。
 - 新建项目需要用户确认才会删除当前本地项目。

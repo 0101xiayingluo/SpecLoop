@@ -50,4 +50,4 @@
 
 ## Optional model mode
 
-在 Preferences 中切换 Model。说明 API Key 只存在 Node 服务端；复杂 / 高风险材料可路由到不同模型，模型输出必须通过 JSON Schema、Zod、证据 ID 白名单和自适应问题预算，失败时自动回退到确定性 Reasoner。
+在 Preferences 中切换 Model。说明 API Key 只存在 Python FastAPI 服务端；复杂 / 高风险材料可路由到不同模型，模型输出必须通过 JSON Schema、Pydantic、Zod、证据 ID 白名单和自适应问题预算，失败时自动回退到确定性 Reasoner。

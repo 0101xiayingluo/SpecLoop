@@ -7,7 +7,7 @@ GitHub Pages frontend
         |
         | VITE_AGENT_API_URL
         v
-Render Node service
+Render Python Agent service
         |
         | server-side OPENAI_API_KEY
         v
@@ -18,11 +18,12 @@ GitHub Pages 只包含静态前端。API Key 仅存在 Render Secret 中，不�
 
 ## 1. 创建 Render 服务
 
-仓库根目录包含 `render.yaml` 和 `Dockerfile`。在 Render 选择 **New Blueprint Instance** 并连接 `0101xiayingluo/SpecLoop`，服务会使用 Docker 构建生产前端和 Node 模型适配层。
+仓库根目录包含 `render.yaml` 和 `Dockerfile`。在 Render 选择 **New Blueprint Instance** 并连接 `0101xiayingluo/SpecLoop`，服务会使用 Docker 构建生产前端和 Python FastAPI Agent runtime。
 
 Blueprint 默认配置：
 
 - 健康检查：`/api/health`
+- Agent runtime：`python-fastapi`
 - 模型：`gpt-5-mini`，可在平台环境变量中替换
 - 每 IP 每分钟最多 12 次模型请求
 - 全局最多 2 个并发模型请求
@@ -53,11 +54,11 @@ Render 部署完成后取得服务地址，例如 `https://specloop-agent.onrend
 VITE_AGENT_API_URL=https://your-render-service.example
 ```
 
-重新运行 `Deploy GitHub Pages` workflow。前端启动时会访问远程 `/api/health`，成功后 Preferences 中可切换到 Model Reasoner。
+重新运行 `Deploy GitHub Pages` workflow。前端启动时会访问远程 `/api/health`，返回 `runtime: python-fastapi` 且 `available: true` 后，Preferences 中可切换到 Model Reasoner。
 
 ## 4. 验收
 
-1. `/api/health` 返回 `available: true`，并展示 guardrail 配置。
+1. `/api/health` 返回 `available: true`、`runtime: python-fastapi`，并展示 guardrail 配置。
 2. GitHub Pages 的 Preferences 显示 Model Reasoner 可用。
 3. 使用 Model 模式分析一份材料。
 4. Evaluation 出现模型、Token、成本、服务端/端到端延迟和 request ID。

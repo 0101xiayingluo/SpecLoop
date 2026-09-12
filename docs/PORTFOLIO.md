@@ -69,7 +69,7 @@ flowchart LR
 | 模型不可用导致流程中断 | 确定性结果始终可用 | Demo baseline、Provider fallback、审计事件 |
 | 需求被新反馈静默覆盖 | 旧结论进入待复核状态 | `challenges` 边、`at-risk` 状态、人工关闭影响 |
 | 模型成本不可控 | 每次调用可观察、服务端限流 | usage、成本估算、延迟、request ID、并发/速率限制 |
-| API Key 泄漏 | 静态前端不持有密钥 | 独立 Node 服务、Secret 注入、受限 Origin |
+| API Key 泄漏 | 静态前端不持有密钥 | 独立 Python FastAPI 服务、Secret 注入、受限 Origin |
 
 ## 关键产品决策
 

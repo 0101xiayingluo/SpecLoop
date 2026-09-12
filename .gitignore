@@ -8,3 +8,8 @@ coverage/
 .vite/
 playwright-report/
 test-results/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+.venv/

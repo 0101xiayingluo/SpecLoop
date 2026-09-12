@@ -206,6 +206,21 @@ export interface AgentRun {
   estimatedCostUsd: number | null
   pricingConfigured: boolean
   error?: string
+  runtime?: 'python-fastapi'
+  executionMode?: 'deterministic' | 'model-assisted' | 'deterministic-review' | 'model-assisted-review' | 'manual-review'
+  policyVersion?: string
+  steps?: Array<{
+    name: 'validate-input' | 'plan-route' | 'model-proposal' | 'grounding-guard' | 'review-gate'
+    status: 'passed' | 'failed' | 'skipped'
+    latencyMs: number
+    detail: string
+  }>
+  guards?: {
+    schemaValid: boolean
+    groundingIntegrity: number
+    traceFaithfulness: number
+    reviewRequired: boolean
+  }
 }
 
 export interface SpecProject {

@@ -43,9 +43,9 @@ npm run preview
 
 打开 `http://127.0.0.1:4173/`，点击 `Load demo` 即可完成可复现演示。
 
-## Run with the model adapter
+## Run the Python Agent runtime
 
-密钥只放在 Node 服务端，不会进入前端包、`localStorage` 或 Git 历史。
+密钥只放在 Python 服务端，不会进入前端包、`localStorage` 或 Git 历史。前端产品流程不变，Agent 执行层由 FastAPI + Pydantic 承载。
 
 ```powershell
 $env:OPENAI_API_KEY="your-key"
@@ -55,11 +55,20 @@ $env:OPENAI_MODEL_LARGE="<verified-quality-model-id>"
 $env:OPENAI_INPUT_USD_PER_1M="copy-current-provider-rate"
 $env:OPENAI_CACHED_INPUT_USD_PER_1M="copy-current-provider-rate"
 $env:OPENAI_OUTPUT_USD_PER_1M="copy-current-provider-rate"
-npm run build
-npm run start:model
+python -m pip install -r requirements-dev.txt
+python -m specloop_agent
 ```
 
-打开 `http://127.0.0.1:8787/`，在 `Preferences -> Reasoner` 选择 `Model`。模型服务不可用时，系统保留确定性分析结果并写入 `model.analysis.fallback` 审计事件。
+打开 `http://127.0.0.1:8787/`，在 `Preferences -> Reasoner` 选择 `Model`。未配置密钥时 Demo 模式仍可离线运行。
+
+Python runtime 的 Agent graph 是：
+
+```text
+Pydantic input -> risk-floor-v2 route -> model proposal -> evidence allowlist
+              -> schema/trace guards -> review gate -> AgentRun telemetry
+```
+
+每次真实运行会记录 `runtime`、`executionMode`、`policyVersion`、步骤状态、guard 结果、Token、成本、延迟和 request ID。Provider 失败或 grounding 失败时，运行记录会保留失败原因，并由前端继续使用确定性 baseline。
 
 服务端适配器使用 OpenAI [Responses API](https://platform.openai.com/docs/api-reference/responses) 的 JSON Schema 输出，并将响应 `usage` 记录为项目级 Agent Run。每次运行保存输入、缓存输入、输出、推理和总 Token，以及服务端/浏览器端延迟和 provider request ID。成本按服务端配置的每百万 Token 单价估算；未配置单价时界面显示 `Not priced`，不会显示误导性的零成本。
 
@@ -67,7 +76,7 @@ npm run start:model
 
 ## Connect a deployed model backend
 
-静态 Pages 不持有密钥。将 `server/agent-server.mjs` 部署到 Node 服务后：
+静态 Pages 不持有密钥。将根目录 Docker/Render 服务部署为 Python Agent backend 后：
 
 1. 后端设置 `OPENAI_API_KEY`、模型、三项价格变量以及 `HOST=0.0.0.0`。
 2. 后端设置 `ALLOWED_ORIGIN=https://0101xiayingluo.github.io`。
@@ -92,13 +101,14 @@ npm run check
 
 ## Deployment
 
-合并到 `main` 后，`pages.yml` 会运行完整检查并部署到 GitHub Pages。未设置仓库变量 `VITE_AGENT_API_URL` 时运行无需密钥的 Demo Reasoner；配置独立 Node 后端后，同一前端可启用真实 Model Reasoner。
+合并到 `main` 后，`pages.yml` 会运行完整检查并部署到 GitHub Pages。未设置仓库变量 `VITE_AGENT_API_URL` 时运行无需密钥的 Demo Reasoner；配置 Python Agent backend 后，同一前端可启用真实 Model Reasoner。
 
 ## Project map
 
 - `src/core/`：领域模型、状态机、Reasoner、模型输出校验、影响分析、导出和持久化。
 - `src/components/`：材料、澄清、需求、追踪、评审和评测界面。
-- `server/`：服务器端 Responses API 适配层和生产静态服务。
+- `specloop_agent/`：FastAPI Agent runtime、Pydantic schema、路由、证据门禁、Provider 和 telemetry。
+- `server/`：历史 Node adapter 目录，当前生产入口不再使用。
 - `evals/`：带正负样例的行为评测数据。
 - `docs/`：PRD、架构、证据政策、调研、评测、商业假设与演示脚本。
 
