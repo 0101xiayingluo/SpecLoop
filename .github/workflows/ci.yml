@@ -17,4 +17,10 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m ruff check specloop_agent tests/python
+      - run: python -m pytest

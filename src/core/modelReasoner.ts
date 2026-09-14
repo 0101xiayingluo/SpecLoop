@@ -55,6 +55,21 @@ const AgentRunSchema = z.object({
   estimatedCostUsd: z.number().nonnegative().nullable(),
   pricingConfigured: z.boolean(),
   error: z.string().max(800).optional(),
+  runtime: z.literal('python-fastapi').optional(),
+  executionMode: z.enum(['deterministic', 'model-assisted', 'deterministic-review', 'model-assisted-review', 'manual-review']).optional(),
+  policyVersion: z.string().min(1).optional(),
+  steps: z.array(z.object({
+    name: z.enum(['validate-input', 'plan-route', 'model-proposal', 'grounding-guard', 'review-gate']),
+    status: z.enum(['passed', 'failed', 'skipped']),
+    latencyMs: z.number().int().nonnegative(),
+    detail: z.string().min(1).max(240),
+  })).optional(),
+  guards: z.object({
+    schemaValid: z.boolean(),
+    groundingIntegrity: z.number().min(0).max(1),
+    traceFaithfulness: z.number().min(0).max(1),
+    reviewRequired: z.boolean(),
+  }).optional(),
 })
 
 const ModelReasonerEnvelopeSchema = z.object({
@@ -159,6 +174,12 @@ export async function enhanceAnalysisWithModel(
           reviewRequired: project.analysisPlan?.reviewRequired ?? true,
           policyVersion: project.analysisPlan?.policyVersion ?? 'legacy',
         },
+        baselineIssues: project.issues.map((issue) => ({
+          key: issue.id,
+          kind: issue.kind,
+          severity: issue.severity,
+          evidenceIds: issue.evidenceIds,
+        })),
       }),
     })
   } catch (reason) {

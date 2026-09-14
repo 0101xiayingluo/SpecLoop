@@ -181,7 +181,7 @@ export function EvaluationView({ project, onReviewFailure }: EvaluationViewProps
           <span>{successfulRuns.length}/{project.agentRuns.length} successful runs</span>
         </div>
         <div className="agent-metric-strip">
-          <div><Cpu size={17} /><span>Live runs</span><strong>{project.agentRuns.length}</strong><small>OpenAI Responses API</small></div>
+          <div><Cpu size={17} /><span>Live runs</span><strong>{project.agentRuns.length}</strong><small>Python Agent + Responses API</small></div>
           <div><ListChecks size={17} /><span>Total tokens</span><strong>{totalTokens.toLocaleString()}</strong><small>successful runs only</small></div>
           <div><Coins size={17} /><span>Estimated cost</span><strong>{pricedRuns.length > 0 ? formatCost(totalCost) : 'Not priced'}</strong><small>{pricedRuns.length}/{successfulRuns.length} runs priced</small></div>
           <div><Timer size={17} /><span>Average latency</span><strong>{successfulRuns.length > 0 ? formatLatency(averageLatency) : 'No data'}</strong><small>browser to validated result</small></div>
@@ -196,7 +196,7 @@ export function EvaluationView({ project, onReviewFailure }: EvaluationViewProps
           ) : project.agentRuns.slice().reverse().map((run) => (
             <div className="agent-run-row" key={run.id}>
               <time>{new Date(run.startedAt).toLocaleString('zh-CN', { hour12: false })}</time>
-              <strong>{run.model}</strong>
+              <strong>{run.model}<small>{run.runtime ?? 'legacy adapter'}{run.executionMode ? ` · ${run.executionMode}` : ''}</small></strong>
               <span className={`agent-run-status ${run.status}`}>{run.status}</span>
               <span>{run.totalTokens.toLocaleString()}<small>{run.inputTokens.toLocaleString()} in · {run.cachedInputTokens.toLocaleString()} cached · {run.outputTokens.toLocaleString()} out</small></span>
               <span>{formatLatency(run.clientLatencyMs)}<small>{formatLatency(run.serverLatencyMs)} server</small></span>
